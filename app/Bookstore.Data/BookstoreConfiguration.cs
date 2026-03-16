@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
+using Microsoft.Extensions.Configuration;
 
 namespace BobsBookstoreClassic.Data
 {
@@ -15,20 +15,24 @@ namespace BobsBookstoreClassic.Data
 
         private BookstoreConfiguration()
         {
-            foreach (string key in ConfigurationManager.AppSettings)
-            {
-                _appSettings[key] = ConfigurationManager.AppSettings[key];
+            var configuration = new ConfigurationBuilder()
+                .SetBasePath(AppContext.BaseDirectory)
+                .AddJsonFile("appsettings.json", optional: true, reloadOnChange: true)
+                .AddEnvironmentVariables()
+                .Build();
 
-                if (Environment.GetEnvironmentVariable(key) != null)
+            foreach (var item in configuration.AsEnumerable())
+            {
+                if (item.Value != null)
                 {
-                    _appSettings[key] = Environment.GetEnvironmentVariable(key);
+                    _appSettings[item.Key] = item.Value;
                 }
             }
 
-            foreach (ConnectionStringSettings connectionStringSettings in ConfigurationManager.ConnectionStrings)
+            var connectionStrings = configuration.GetSection("ConnectionStrings");
+            foreach (var item in connectionStrings.GetChildren())
             {
-                _connectionStrings[connectionStringSettings.Name] = connectionStringSettings.ConnectionString;
-
+                _connectionStrings[item.Key] = item.Value;
             }
         }
 
@@ -39,7 +43,7 @@ namespace BobsBookstoreClassic.Data
 
         public static string GetSetting(string key)
         {
-            return Instance._appSettings[key];
+            return Instance._appSettings.TryGetValue(key, out var value) ? value : null;
         }
 
         public static T GetSetting<T>(string key)
@@ -56,7 +60,7 @@ namespace BobsBookstoreClassic.Data
 
         public static string GetConnectionString(string key)
         {
-            return Instance._connectionStrings[key];
+            return Instance._connectionStrings.TryGetValue(key, out var value) ? value : null;
         }
 
     }
