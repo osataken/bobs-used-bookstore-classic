@@ -1,5 +1,6 @@
-﻿@using Bookstore.Domain.ReferenceData
+@using Bookstore.Domain.ReferenceData
 @using Bookstore.Web.Helpers
+@using Microsoft.AspNetCore.Mvc.Rendering
 
 @model Bookstore.Web.Areas.Admin.Models.ReferenceData.ReferenceDataItemCreateUpdateViewModel
 
@@ -15,7 +16,7 @@
     <div class="col-4">
         <div class="mb-3">
             <label for="referenceDataTypeSelect" class="form-label">Reference data type</label>
-            @Html.DropDownListFor(a => a.SelectedReferenceDataType, Html.GetSelectListForEnum<ReferenceDataType>(), null, new { @class = "form-select" })
+            @Html.DropDownListFor(a => a.SelectedReferenceDataType, Html.GetEnumSelectList<ReferenceDataType>(), null, new { @class = "form-select" })
         </div>
         <div class="mb-3">
             <label for="referenceDataTextInput" class="form-label">Text</label>
