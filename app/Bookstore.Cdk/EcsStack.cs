@@ -54,26 +54,26 @@ public class EcsStack : Stack
                 HealthCheckGracePeriod = Duration.Seconds(30),
                 TaskImageOptions = new ApplicationLoadBalancedTaskImageOptions
                 {
-                    Image = ContainerImage.FromAsset(".\\"),
+                    Image = ContainerImage.FromAsset("."),
                     Environment = new Dictionary<string, string>
                     {
-                            { "Services/Authentication", "local" }, //Can't use Cognito hosted UI without an https redirect.
-                            { "Services/Database", "aws" },
-                            { "Services/FileService", "aws" },
-                            { "Services/ImageValidationService", "aws" },
-                            { "Services/LoggingService", "aws" }
+                            { "Services__Authentication", "local" }, //Can't use Cognito hosted UI without an https redirect.
+                            { "Services__Database", "aws" },
+                            { "Services__FileService", "aws" },
+                            { "Services__ImageValidationService", "aws" },
+                            { "Services__LoggingService", "aws" }
                     }
                 },
                 RuntimePlatform = new RuntimePlatform
                 {
                     CpuArchitecture = CpuArchitecture.X86_64,
-                    OperatingSystemFamily = OperatingSystemFamily.WINDOWS_SERVER_2019_CORE
+                    OperatingSystemFamily = OperatingSystemFamily.LINUX
                 }
             });
 
         service.TargetGroup.HealthCheck = new HealthCheck
         {
-            Path = "/Home/Privacy",
+            Path = "/health",
             HealthyThresholdCount = 2,
             Timeout = Duration.Seconds(25)
         };

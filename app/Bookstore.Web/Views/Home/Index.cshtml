@@ -18,7 +18,7 @@
             <p>You can also sell your own books to us and earn some extra cash. At Bob’s Used Books, we believe that every book deserves a second chance.</p>
             <p>Shop with us today and discover the joy of reading!</p>
             <div class="btn-sec">
-                @Html.ActionLink("Shop Books", "Index", "Search", new { area = "" }, new { @class = "btn black" })
+                <a asp-action="Index" asp-controller="Search" asp-area="" class="btn black">Shop Books</a>
             </div>
         </div>
     </section>
@@ -65,8 +65,8 @@
                 Start adding books to your wishlist today.
             </p>
             <div class="btn-sec">
-                @Html.ActionLink("Wish List", "Index", "Wishlist", new { area = "" }, new { @class = "btn black" })
-                @Html.ActionLink("Shop Books", "Index", "Search", new { area = "" }, new { @class = "btn black" })
+                <a asp-action="Index" asp-controller="Wishlist" asp-area="" class="btn black">Wish List</a>
+                <a asp-action="Index" asp-controller="Search" asp-area="" class="btn black">Shop Books</a>
             </div>
         </div>
         <div class="about-img">
@@ -117,7 +117,7 @@
                 If you wish to learn more about our privacy policy, check out our privacy policy page.
             </p>
             <div class="btn-sec">
-                @Html.ActionLink("Privacy", "Privacy", "Home", new { area = "" }, new { @class = "btn black" })
+                <a asp-action="Privacy" asp-controller="Home" asp-area="" class="btn black">Privacy</a>
             </div>
         </div>
     </section>

@@ -1,10 +1,7 @@
-using Autofac;
-using Autofac.Extensions.DependencyInjection;
 using Amazon.Rekognition;
 using Amazon.S3;
 using Amazon.SimpleSystemsManagement;
 using Amazon.SimpleSystemsManagement.Model;
-using BobsBookstoreClassic.Data;
 using Bookstore.Common;
 using Bookstore.Data;
 using Bookstore.Data.FileServices;
@@ -23,6 +20,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -33,65 +31,70 @@ using NLog.AWS.Logger;
 using NLog.Config;
 using NLog.Targets;
 using NLog.Web;
+using System.Collections.Generic;
 using System.IO;
 using System.Security.Claims;
 using WebOptimizer;
 
 var builder = WebApplication.CreateBuilder(args);
+var configuration = builder.Configuration;
 
-builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
-
-ConfigureLogging();
-ConfigureConfiguration();
+LoadAwsParameters(configuration);
+ConfigureLogging(configuration);
 
 builder.Services.AddControllersWithViews();
 
-var connectionString = BookstoreConfiguration.GetConnectionString("BookstoreDatabaseConnection");
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
-
-builder.Host.ConfigureContainer<ContainerBuilder>(containerBuilder =>
+var connectionString = configuration.GetConnectionString("BookstoreDatabaseConnection");
+if (configuration["Services:Database"] == "aws")
 {
-    containerBuilder.RegisterType<BookService>().As<IBookService>();
-    containerBuilder.RegisterType<OrderService>().As<IOrderService>();
-    containerBuilder.RegisterType<ReferenceDataService>().As<IReferenceDataService>();
-    containerBuilder.RegisterType<OfferService>().As<IOfferService>();
-    containerBuilder.RegisterType<CustomerService>().As<ICustomerService>();
-    containerBuilder.RegisterType<AddressService>().As<IAddressService>();
-    containerBuilder.RegisterType<ShoppingCartService>().As<IShoppingCartService>();
-    containerBuilder.RegisterType<ImageResizeService>().As<IImageResizeService>();
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseSqlServer(connectionString));
+}
+else
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(options =>
+        options.UseSqlite(connectionString));
+}
 
-    containerBuilder.RegisterType<CustomerRepository>().As<ICustomerRepository>();
-    containerBuilder.RegisterType<AddressRepository>().As<IAddressRepository>();
-    containerBuilder.RegisterType<BookRepository>().As<IBookRepository>();
-    containerBuilder.RegisterType<OfferRepository>().As<IOfferRepository>();
-    containerBuilder.RegisterType<ShoppingCartRepository>().As<IShoppingCartRepository>();
-    containerBuilder.RegisterType<OrderRepository>().As<IOrderRepository>();
-    containerBuilder.RegisterType<ReferenceDataRepository>().As<IReferenceDataRepository>();
+builder.Services.AddScoped<IBookService, BookService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IReferenceDataService, ReferenceDataService>();
+builder.Services.AddScoped<IOfferService, OfferService>();
+builder.Services.AddScoped<ICustomerService, CustomerService>();
+builder.Services.AddScoped<IAddressService, AddressService>();
+builder.Services.AddScoped<IShoppingCartService, ShoppingCartService>();
+builder.Services.AddScoped<IImageResizeService, ImageResizeService>();
 
-    if (BookstoreConfiguration.GetSetting("Services/FileService") == "aws")
-    {
-        containerBuilder.RegisterType<AmazonS3Client>().As<IAmazonS3>();
-        containerBuilder.RegisterType<S3FileService>().As<IFileService>();
-    }
-    else
-    {
-        var webRootPath = builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
-        containerBuilder.RegisterInstance(new LocalFileService(webRootPath)).As<IFileService>();
-    }
+builder.Services.AddScoped<ICustomerRepository, CustomerRepository>();
+builder.Services.AddScoped<IAddressRepository, AddressRepository>();
+builder.Services.AddScoped<IBookRepository, BookRepository>();
+builder.Services.AddScoped<IOfferRepository, OfferRepository>();
+builder.Services.AddScoped<IShoppingCartRepository, ShoppingCartRepository>();
+builder.Services.AddScoped<IOrderRepository, OrderRepository>();
+builder.Services.AddScoped<IReferenceDataRepository, ReferenceDataRepository>();
 
-    if (BookstoreConfiguration.GetSetting("Services/ImageValidationService") == "aws")
-    {
-        containerBuilder.RegisterType<AmazonRekognitionClient>().As<IAmazonRekognition>();
-        containerBuilder.RegisterType<RekognitionImageValidationService>().As<IImageValidationService>();
-    }
-    else
-    {
-        containerBuilder.RegisterType<LocalImageValidationService>().As<IImageValidationService>();
-    }
-});
+if (configuration["Services:FileService"] == "aws")
+{
+    builder.Services.AddScoped<IAmazonS3, AmazonS3Client>();
+    builder.Services.AddScoped<IFileService, S3FileService>();
+}
+else
+{
+    var webRootPath = builder.Environment.WebRootPath ?? Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
+    builder.Services.AddSingleton<IFileService>(new LocalFileService(webRootPath));
+}
 
-if (BookstoreConfiguration.GetSetting("Services/Authentication") == "aws")
+if (configuration["Services:ImageValidationService"] == "aws")
+{
+    builder.Services.AddScoped<IAmazonRekognition, AmazonRekognitionClient>();
+    builder.Services.AddScoped<IImageValidationService, RekognitionImageValidationService>();
+}
+else
+{
+    builder.Services.AddScoped<IImageValidationService, LocalImageValidationService>();
+}
+
+if (configuration["Services:Authentication"] == "aws")
 {
     builder.Services.AddAuthentication(options =>
     {
@@ -101,8 +104,8 @@ if (BookstoreConfiguration.GetSetting("Services/Authentication") == "aws")
     .AddCookie()
     .AddOpenIdConnect(options =>
     {
-        options.ClientId = BookstoreConfiguration.GetSetting("Authentication/Cognito/LocalClientId");
-        options.MetadataAddress = BookstoreConfiguration.GetSetting("Authentication/Cognito/MetadataAddress");
+        options.ClientId = configuration["Authentication:Cognito:LocalClientId"];
+        options.MetadataAddress = configuration["Authentication:Cognito:MetadataAddress"];
         options.ResponseType = OpenIdConnectResponseType.Code;
         options.Scope.Add("openid");
         options.Scope.Add("profile");
@@ -142,13 +145,12 @@ else
 
 builder.Services.AddWebOptimizer(pipeline =>
 {
-    pipeline.AddJavaScriptBundle("/bundles/jquery", "Scripts/jquery-*.js");
-    pipeline.AddJavaScriptBundle("/bundles/jqueryval", "Scripts/jquery.validate*.js");
-    pipeline.AddJavaScriptBundle("/bundles/modernizr", "Scripts/modernizr-*.js");
     pipeline.AddCssBundle("/Content/css", "Content/css/site.css", "Content/css/styles.css", "Content/css/custom-style.css");
 });
 
 builder.Logging.ClearProviders();
+builder.Services.AddHealthChecks();
+
 builder.Host.UseNLog();
 
 var app = builder.Build();
@@ -162,7 +164,18 @@ using (var scope = app.Services.CreateScope())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
+    app.UseHsts();
 }
+
+app.UseHttpsRedirection();
+
+app.Use(async (context, next) =>
+{
+    context.Response.Headers["X-Content-Type-Options"] = "nosniff";
+    context.Response.Headers["X-Frame-Options"] = "DENY";
+    context.Response.Headers["Referrer-Policy"] = "strict-origin-when-cross-origin";
+    await next();
+});
 
 app.UseStaticFiles();
 app.UseWebOptimizer();
@@ -171,12 +184,14 @@ app.UseRouting();
 
 app.UseAuthentication();
 
-if (BookstoreConfiguration.GetSetting("Services/Authentication") != "aws")
+if (configuration["Services:Authentication"] != "aws")
 {
     app.UseMiddleware<Bookstore.Web.Helpers.LocalAuthenticationMiddleware>();
 }
 
 app.UseAuthorization();
+
+app.MapHealthChecks("/health");
 
 app.MapControllerRoute(
     name: "areas",
@@ -188,13 +203,13 @@ app.MapControllerRoute(
 
 app.Run();
 
-void ConfigureLogging()
+void ConfigureLogging(IConfiguration config)
 {
-    var config = new LoggingConfiguration();
+    var loggingConfig = new LoggingConfiguration();
 
     NLog.Targets.Target loggingTarget;
 
-    if (BookstoreConfiguration.GetSetting("Services/LoggingService") == "aws")
+    if (config["Services:LoggingService"] == "aws")
     {
         loggingTarget = new AWSTarget { LogGroup = Constants.AppName };
     }
@@ -203,13 +218,13 @@ void ConfigureLogging()
         loggingTarget = new DebuggerTarget();
     }
 
-    config.AddTarget("aws", loggingTarget);
-    config.LoggingRules.Add(new LoggingRule("*", NLog.LogLevel.Info, loggingTarget));
+    loggingConfig.AddTarget("aws", loggingTarget);
+    loggingConfig.LoggingRules.Add(new LoggingRule("*", NLog.LogLevel.Info, loggingTarget));
 
-    LogManager.Configuration = config;
+    LogManager.Configuration = loggingConfig;
 }
 
-void ConfigureConfiguration()
+void LoadAwsParameters(IConfiguration config)
 {
     var rootPath = "/" + Constants.AppName;
 
@@ -217,41 +232,41 @@ void ConfigureConfiguration()
     const string authenticationPath = "/Authentication";
     const string fileServicePath = "/Files";
 
-    if (BookstoreConfiguration.GetSetting("Services/Database") == "aws")
+    if (config["Services:Database"] == "aws")
     {
         using (var client = new AmazonSimpleSystemsManagementClient())
         {
             var request = new GetParameterRequest { Name = $"{rootPath}{databasePath}/ConnectionStrings/BookstoreDatabaseConnection" };
-            var response = client.GetParameterAsync(request).Result;
+            var response = client.GetParameterAsync(request).GetAwaiter().GetResult();
 
-            BookstoreConfiguration.AddSetting(response.Parameter.Name.Replace($"{rootPath}{databasePath}/", string.Empty), response.Parameter.Value);
+            config[response.Parameter.Name.Replace($"{rootPath}{databasePath}/", string.Empty).Replace("/", ":")] = response.Parameter.Value;
         }
     }
 
-    if (BookstoreConfiguration.GetSetting("Services/Authentication") == "aws")
+    if (config["Services:Authentication"] == "aws")
     {
         using (var client = new AmazonSimpleSystemsManagementClient())
         {
             var request = new GetParametersByPathRequest { Path = $"{rootPath}{authenticationPath}/", Recursive = true };
-            var response = client.GetParametersByPathAsync(request).Result;
+            var response = client.GetParametersByPathAsync(request).GetAwaiter().GetResult();
 
             foreach (var parameter in response.Parameters)
             {
-                BookstoreConfiguration.AddSetting(parameter.Name.Replace($"{rootPath}/", string.Empty), parameter.Value);
+                config[parameter.Name.Replace($"{rootPath}/", string.Empty).Replace("/", ":")] = parameter.Value;
             }
         }
     }
 
-    if (BookstoreConfiguration.GetSetting("Services/FileService") == "aws")
+    if (config["Services:FileService"] == "aws")
     {
         using (var client = new AmazonSimpleSystemsManagementClient())
         {
             var request = new GetParametersByPathRequest { Path = $"{rootPath}{fileServicePath}/", Recursive = true };
-            var response = client.GetParametersByPathAsync(request).Result;
+            var response = client.GetParametersByPathAsync(request).GetAwaiter().GetResult();
 
             foreach (var parameter in response.Parameters)
             {
-                BookstoreConfiguration.AddSetting(parameter.Name.Replace($"{rootPath}/", string.Empty), parameter.Value);
+                config[parameter.Name.Replace($"{rootPath}/", string.Empty).Replace("/", ":")] = parameter.Value;
             }
         }
     }

@@ -4,7 +4,7 @@
 }
 
 <div class="panel-body">
-    @Html.Partial("_Notification")
+    <partial name="_Notification" />
 
     <h2 class="mb-3">Search for Books</h2>
 
@@ -46,7 +46,7 @@
                         {
                             <div class="col-md-3">
                                 <div class="item text-center">
-                                    <a href="@Url.Action("Details", "Search", new { id = item.BookId })">
+                                    <a asp-action="Details" asp-controller="Search" asp-route-id="@item.BookId">
                                         <img src="@item.ImageUrl" alt="img" class="book_image_size" onerror="this.onerror=null;this.src='/images/default_c.jpg';" style="width: 135px;height: 200px;">
                                     </a>
 
@@ -74,7 +74,7 @@
                 </div>
 
                 <div>
-                    @Html.Partial("_Paginator")
+                    <partial name="_Paginator" />
                 </div>
             </div>
         </section>
