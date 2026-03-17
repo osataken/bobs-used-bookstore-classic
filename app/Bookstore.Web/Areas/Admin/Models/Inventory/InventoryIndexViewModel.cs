@@ -4,7 +4,7 @@ using Bookstore.Domain.ReferenceData;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bookstore.Web.Areas.Admin.Models.Inventory
 {
@@ -15,13 +15,13 @@ namespace Bookstore.Web.Areas.Admin.Models.Inventory
 
         public BookFilters Filters { get; set; } = new BookFilters();
 
-        public IEnumerable<SelectListItem> Publishers { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> Publishers { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
 
-        public IEnumerable<SelectListItem> BookTypes { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> BookTypes { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
 
-        public IEnumerable<SelectListItem> Genres { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> Genres { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
 
-        public IEnumerable<SelectListItem> BookConditions { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> BookConditions { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
 
         public InventoryIndexViewModel() { }
 
@@ -52,10 +52,10 @@ namespace Bookstore.Web.Areas.Admin.Models.Inventory
             HasPreviousPage = books.HasPreviousPage;
             PaginationButtons = books.GetPageList(5).ToList();
 
-            BookConditions = referenceDataItems.Where(x => x.DataType == ReferenceDataType.Condition).Select(x => new SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
-            BookTypes = referenceDataItems.Where(x => x.DataType == ReferenceDataType.BookType).Select(x => new SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
-            Genres = referenceDataItems.Where(x => x.DataType == ReferenceDataType.Genre).Select(x => new SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
-            Publishers = referenceDataItems.Where(x => x.DataType == ReferenceDataType.Publisher).Select(x => new SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
+            BookConditions = referenceDataItems.Where(x => x.DataType == ReferenceDataType.Condition).Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
+            BookTypes = referenceDataItems.Where(x => x.DataType == ReferenceDataType.BookType).Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
+            Genres = referenceDataItems.Where(x => x.DataType == ReferenceDataType.Genre).Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
+            Publishers = referenceDataItems.Where(x => x.DataType == ReferenceDataType.Publisher).Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
         }
     }
 

@@ -12,6 +12,9 @@ namespace Bookstore.Web.Areas.Admin.Models.Orders
 
         public OrderFilters Filters { get; set; }
 
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> OrderStatusSelectList => 
+            Bookstore.Web.Helpers.MvcHelpers.GetSelectListForEnum<OrderStatus>("All Order Statuses");
+
         public OrderIndexViewModel(IPaginatedList<Order> orderDtos, OrderFilters filters)
         {
             foreach (var order in orderDtos)

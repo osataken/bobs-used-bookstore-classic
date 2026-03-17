@@ -1,8 +1,9 @@
+using Microsoft.AspNetCore.Authorization;
 ﻿using System.Threading.Tasks;
 using Bookstore.Web.Helpers;
 using Bookstore.Domain.Orders;
 using Bookstore.Web.ViewModel.Orders;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bookstore.Web.Controllers
 {

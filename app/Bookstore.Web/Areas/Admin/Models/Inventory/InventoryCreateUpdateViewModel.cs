@@ -2,8 +2,8 @@
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
-using System.Web;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
 using Bookstore.Domain.Books;
 using Bookstore.Domain.ReferenceData;
 using Bookstore.Web.Helpers;
@@ -49,25 +49,25 @@ namespace Bookstore.Web.Areas.Admin.Models.Inventory
         [Required]
         public string ISBN { get; set; }
 
-        public IEnumerable<SelectListItem> Publishers { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> Publishers { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
         
         [Required]
         [DisplayName("Publisher")]
         public int SelectedPublisherId { get; set; }
 
-        public IEnumerable<SelectListItem> BookTypes { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> BookTypes { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
 
         [Required]
         [DisplayName("Book Type")]
         public int SelectedBookTypeId { get; set; }
 
-        public IEnumerable<SelectListItem> Genres { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> Genres { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
        
         [Required]
         [DisplayName("Genre")]
         public int SelectedGenreId { get; set; }
 
-        public IEnumerable<SelectListItem> BookConditions { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> BookConditions { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
         
         [Required]
         [DisplayName("Condition")]
@@ -82,7 +82,7 @@ namespace Bookstore.Web.Areas.Admin.Models.Inventory
         [MaxFileSize(2*1024*1024)]
         [ImageTypes(new string[] {".png", ".jpg", ".jpeg"})]
         [DisplayName("Cover image")]
-        public HttpPostedFileBase CoverImage { get; set; }
+        public IFormFile CoverImage { get; set; }
         
         public string CoverImageUrl { get; set; }
 
@@ -92,19 +92,19 @@ namespace Bookstore.Web.Areas.Admin.Models.Inventory
         {
             BookConditions = referenceDataItems
                 .Where(x => x.DataType == ReferenceDataType.Condition)
-                .Select(x => new SelectListItem { Text = x.Text, Value = x.Id.ToString() });
+                .Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Text = x.Text, Value = x.Id.ToString() });
 
             BookTypes = referenceDataItems
                 .Where(x => x.DataType == ReferenceDataType.BookType)
-                .Select(x => new SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
+                .Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
 
             Genres = referenceDataItems
                 .Where(x => x.DataType == ReferenceDataType.Genre)
-                .Select(x => new SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
+                .Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
 
             Publishers = referenceDataItems
                 .Where(x => x.DataType == ReferenceDataType.Publisher)
-                .Select(x => new SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
+                .Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem{ Text = x.Text, Value = x.Id.ToString() });
         }
     }
 }

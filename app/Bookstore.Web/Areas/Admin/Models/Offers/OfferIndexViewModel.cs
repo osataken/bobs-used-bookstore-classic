@@ -4,7 +4,7 @@ using Bookstore.Domain.ReferenceData;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bookstore.Web.Areas.Admin.Models.Offers
 {
@@ -35,17 +35,20 @@ namespace Bookstore.Web.Areas.Admin.Models.Offers
             HasPreviousPage = offers.HasPreviousPage;
             PaginationButtons = offers.GetPageList(5).ToList();
 
-            Genres = referenceData.Where(x => x.DataType == ReferenceDataType.Genre).Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Text });
-            BookConditions = referenceData.Where(x => x.DataType == ReferenceDataType.Condition).Select(x => new SelectListItem { Value = x.Id.ToString(), Text = x.Text });
+            Genres = referenceData.Where(x => x.DataType == ReferenceDataType.Genre).Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = x.Id.ToString(), Text = x.Text });
+            BookConditions = referenceData.Where(x => x.DataType == ReferenceDataType.Condition).Select(x => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem { Value = x.Id.ToString(), Text = x.Text });
         }
 
         public List<OfferIndexItemViewModel> Items { get; set; } = new List<OfferIndexItemViewModel>();
 
         public OfferFilters Filters { get; set; }
 
-        public IEnumerable<SelectListItem> Genres { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> Genres { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
 
-        public IEnumerable<SelectListItem> BookConditions { get; set; } = new List<SelectListItem>();
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> BookConditions { get; set; } = new List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>();
+
+        public IEnumerable<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem> OfferStatusSelectList => 
+            Bookstore.Web.Helpers.MvcHelpers.GetSelectListForEnum<OfferStatus>("All Offer Statuses");
     }
 
     public class OfferIndexItemViewModel
