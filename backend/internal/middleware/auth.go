@@ -3,7 +3,6 @@ package middleware
 import (
 	"bobs-used-bookstore-api/internal/service"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -161,5 +160,4 @@ func AuthStatusHandler(c *gin.Context) {
 	})
 }
 
-// Placeholder to suppress unused import warnings
-var _ = time.Now
+// Placeholder removed - no longer needed
