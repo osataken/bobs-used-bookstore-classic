@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - SERVICES_AUTHENTICATION=local
+      - SERVICES_DATABASE=local
+      - SERVICES_FILESERVICE=local
+      - SERVICES_IMAGEVALIDATIONSERVICE=local
+      - SERVICES_LOGGINGSERVICE=local
+      - DATABASE_DSN=/data/bookstore.db
+      - LOCAL_IMAGE_PATH=/data/uploads/coverimages
+    volumes:
+      - backend-data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  backend-data:
