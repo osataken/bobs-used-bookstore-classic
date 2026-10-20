@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
+using Microsoft.Extensions.Configuration;
 
 namespace BobsBookstoreClassic.Data
 {
@@ -13,22 +13,40 @@ namespace BobsBookstoreClassic.Data
         private readonly Dictionary<string, string> _appSettings = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _connectionStrings = new Dictionary<string, string>();
 
-        private BookstoreConfiguration()
-        {
-            foreach (string key in ConfigurationManager.AppSettings)
-            {
-                _appSettings[key] = ConfigurationManager.AppSettings[key];
+        private BookstoreConfiguration() { }
 
-                if (Environment.GetEnvironmentVariable(key) != null)
+        /// <summary>
+        /// Initializes BookstoreConfiguration from ASP.NET Core IConfiguration.
+        /// Call this once at startup before using any other methods.
+        /// </summary>
+        public static void Initialize(IConfiguration configuration)
+        {
+            // Load all flat configuration values
+            foreach (var kvp in configuration.AsEnumerable())
+            {
+                if (kvp.Value != null)
                 {
-                    _appSettings[key] = Environment.GetEnvironmentVariable(key);
+                    Instance._appSettings[kvp.Key] = kvp.Value;
                 }
             }
 
-            foreach (ConnectionStringSettings connectionStringSettings in ConfigurationManager.ConnectionStrings)
+            // Load connection strings from ConnectionStrings section
+            var connectionStringsSection = configuration.GetSection("ConnectionStrings");
+            foreach (var item in connectionStringsSection.GetChildren())
             {
-                _connectionStrings[connectionStringSettings.Name] = connectionStringSettings.ConnectionString;
+                if (item.Value != null)
+                    Instance._connectionStrings[item.Key] = item.Value;
+            }
 
+            // Allow environment variable overrides using double-underscore separator
+            foreach (var key in new List<string>(Instance._appSettings.Keys))
+            {
+                var envKey = key.Replace("/", "__").Replace(":", "__");
+                var envValue = Environment.GetEnvironmentVariable(envKey);
+                if (envValue != null)
+                {
+                    Instance._appSettings[key] = envValue;
+                }
             }
         }
 
@@ -39,13 +57,14 @@ namespace BobsBookstoreClassic.Data
 
         public static string GetSetting(string key)
         {
-            return Instance._appSettings[key];
+            if (Instance._appSettings.TryGetValue(key, out var value))
+                return value ?? string.Empty;
+            return string.Empty;
         }
 
         public static T GetSetting<T>(string key)
         {
-            var value = Instance._appSettings[key];
-
+            var value = GetSetting(key);
             return (T)Convert.ChangeType(value, typeof(T));
         }
 
@@ -56,8 +75,9 @@ namespace BobsBookstoreClassic.Data
 
         public static string GetConnectionString(string key)
         {
-            return Instance._connectionStrings[key];
+            if (Instance._connectionStrings.TryGetValue(key, out var value))
+                return value ?? string.Empty;
+            return string.Empty;
         }
-
     }
 }

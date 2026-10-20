@@ -36,7 +36,16 @@
 
             <div class="col-12">
                 <label class="visually-hidden" for="OfferStatusSelect">Offer status</label>
-                @Html.EnumDropDownListFor(a => a.Filters.OfferStatus, "All Offer Statuses", new { @class = "form-select" })
+                <select name="Filters.OfferStatus" class="form-select" id="OfferStatusSelect">
+                    <option value="">All Offer Statuses</option>
+                    @{
+                        foreach (var item in Html.GetEnumSelectList<OfferStatus>())
+                        {
+                            var isSelected = Model.Filters?.OfferStatus.HasValue == true && Model.Filters.OfferStatus.ToString() == item.Value;
+                            <option value="@item.Value" selected="@(isSelected ? "selected" : null)">@item.Text</option>
+                        }
+                    }
+                </select>
             </div>
             <div class="col-12">
                 <button type="submit" class="btn btn-primary">Filter</button>
