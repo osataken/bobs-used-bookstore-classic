@@ -14,7 +14,16 @@
         <form class="row row-cols-lg-auto g-3 align-items-center" method="get">
             <div class="col-12">
                 <label class="visually-hidden" for="OrderStatusSelect">Reference data type</label>
-                @Html.EnumDropDownListFor(a => a.Filters.OrderStatusFilter, "All Order Statuses", new { @class = "form-select" })
+                <select name="Filters.OrderStatusFilter" class="form-select" id="OrderStatusSelect">
+                    <option value="">All Order Statuses</option>
+                    @{
+                        foreach (var item in Html.GetEnumSelectList<OrderStatus>())
+                        {
+                            var isSelected = Model.Filters?.OrderStatusFilter.HasValue == true && Model.Filters.OrderStatusFilter.ToString() == item.Value;
+                            <option value="@item.Value" selected="@(isSelected ? "selected" : null)">@item.Text</option>
+                        }
+                    }
+                </select>
             </div>
             <div class="col-12">
                 <label class="visually-hidden" for="OrderStatusSelect">Order date from</label>
