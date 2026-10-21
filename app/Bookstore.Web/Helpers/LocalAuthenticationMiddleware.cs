@@ -60,7 +60,8 @@ namespace Bookstore.Web.Helpers
 
         private static async Task SaveCustomerDetailsAsync(ICustomerService customerService, ClaimsPrincipal principal)
         {
-            var identity = (ClaimsIdentity)principal.Identity;
+            var identity = principal.Identity as ClaimsIdentity;
+            if (identity == null) return;
 
             var dto = new CreateOrUpdateCustomerDto(
                 identity.FindFirst("nameidentifier")?.Value ?? string.Empty,

@@ -3,20 +3,20 @@
     public class CreateOfferDto
     {
         public CreateOfferDto(
-        string CustomerSub,
-        string BookName,
-        string Author,
-        string ISBN,
+        string? CustomerSub,
+        string? BookName,
+        string? Author,
+        string? ISBN,
         int BookTypeId,
         int ConditionId,
         int GenreId,
         int PublisherId,
         decimal BookPrice)
         {
-            this.CustomerSub = CustomerSub;
-            this.BookName = BookName;
-            this.Author = Author;
-            this.ISBN = ISBN;
+            this.CustomerSub = CustomerSub ?? string.Empty;
+            this.BookName = BookName ?? string.Empty;
+            this.Author = Author ?? string.Empty;
+            this.ISBN = ISBN ?? string.Empty;
             this.BookTypeId = BookTypeId;
             this.ConditionId = ConditionId;
             this.GenreId = GenreId;

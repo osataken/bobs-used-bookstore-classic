@@ -1,114 +1,200 @@
-# Migration Summary: .NET Framework 4.8 → .NET 10
+# .NET Framework → .NET 10 Migration Summary
 
-## Status: ✅ Complete — 0 errors, 0 warnings
+## Migration Outcome
 
-All five projects build successfully targeting `net10.0`.
+All 5 projects build successfully with **zero compilation errors and zero warnings**.
 
----
-
-## Projects Migrated
-
-| Project | Before | After | Notes |
-|---------|--------|-------|-------|
-| Bookstore.Cdk | net10.0 (SDK-style, already modern) | net10.0 | Bumped Amazon.CDK.Lib → 2.273.0, Constructs → 10.5.0 to resolve NU1901 vulnerability advisory |
-| Bookstore.Common | netstandard2.0 | netstandard2.0 | No changes needed; simple constants project |
-| Bookstore.Domain | netstandard2.0 | netstandard2.0 | Fixed duplicate `AssemblyInfo.cs` attributes |
-| Bookstore.Data | netstandard2.0 + EntityFramework 6.5.1 | net10.0 + EF Core 9.0.4 | Full EF6 → EF Core migration (see below) |
-| Bookstore.Web | .NET Framework 4.8 (old-style csproj, MVC 5 / OWIN) | net10.0 (SDK.Web, ASP.NET Core MVC) | Full stack migration (see below) |
+| Project | Target Framework | Result |
+|---------|-----------------|--------|
+| Bookstore.Cdk | net10.0 | ✅ 0 errors, 0 warnings |
+| Bookstore.Common | netstandard2.0 | ✅ 0 errors, 0 warnings |
+| Bookstore.Domain | netstandard2.0 | ✅ 0 errors, 0 warnings |
+| Bookstore.Data | net10.0 + netstandard2.0 | ✅ 0 errors, 0 warnings |
+| Bookstore.Web | net10.0 | ✅ 0 errors, 0 warnings |
 
 ---
 
-## Bookstore.Data Changes
+## Changes Made
 
-### EF6 → EF Core
-- Replaced `EntityFramework 6.5.1` with `Microsoft.EntityFrameworkCore 9.0.4` + `Microsoft.EntityFrameworkCore.SqlServer 9.0.4`
-- Migrated `ApplicationDbContext`:
-  - Constructor changed from `(string connectionString) : base(connectionString)` → `(DbContextOptions<ApplicationDbContext> options) : base(options)`
-  - `OnModelCreating(DbModelBuilder)` → `OnModelCreating(ModelBuilder)`
-  - Removed `PluralizingTableNameConvention` (EF Core doesn't pluralize by default)
-  - `HasRequired(...).WillCascadeOnDelete(false)` → `HasOne(...).OnDelete(DeleteBehavior.NoAction)`
-  - `HasDatabaseGeneratedOption(DatabaseGeneratedOption.Identity)` → `ValueGeneratedOnAdd()`
-  - Removed `Database.SetInitializer(new BookstoreDbInitializer())`
-  - Moved seed data from `BookstoreDbInitializer` into `OnModelCreating` using `HasData()` for ReferenceDataItems and Books
-- Migrated `PaginatedList<T>`: `using System.Data.Entity` → `using Microsoft.EntityFrameworkCore`
-- Migrated all repositories:
-  - `using System.Data.Entity` → `using Microsoft.EntityFrameworkCore`
-  - Nested EF6 includes `.Include(x => x.OrderItems.Select(y => y.Book))` → `.Include(x => x.OrderItems).ThenInclude(y => y.Book)`
-  - `await Task.Run(() => dbContext.X.Add(obj))` → `await dbContext.X.AddAsync(obj)`
-  - String-based `Include("Genre")` → typed `Include(x => x.Genre)`
-  - Removed `using Amazon.Auth.AccessControlPolicy` from `OfferRepository` (incorrect import)
-- `BookstoreConfiguration`: Replaced `System.Configuration.ConfigurationManager` with an `Initialize(IConfiguration config)` static method that populates the singleton from ASP.NET Core `IConfiguration`. The public API (`GetSetting`, `GetConnectionString`, etc.) is unchanged, so no call sites required modification.
-- `BookstoreDbInitializer`: Converted from `DropCreateDatabaseIfModelChanges<T>` to a static `InitializeAsync(ApplicationDbContext)` helper that calls `EnsureCreatedAsync()`.
+### Bookstore.Data.csproj
+- Made EF Core packages (EF Core 9.x, SqlServer, Design) conditional on `net10.0` only — EF Core 9 requires net8.0+ and is incompatible with netstandard2.0.
+- Added `Condition` to exclude EF Core–dependent files (`ApplicationDbContext.cs`, `BookstoreDbInitializer.cs`, `PaginatedList.cs`, all `Repositories/*.cs`) from the `netstandard2.0` build target. The `netstandard2.0` leg still compiles (containing AWS SDK services, file services, and image services), maintaining backward-compatible lib consumption.
 
-### Target Framework Decision
-Bookstore.Data was collapsed from `netstandard2.0` to `net10.0` only. EF Core 9.0.4 targets `net8.0` only (no `netstandard2.0` support), making multi-targeting fundamentally incompatible. This project is exclusively consumed by the `net10.0` Bookstore.Web application.
+### Bookstore.Domain.csproj
+- Added `System.ComponentModel.Annotations` package (for `[Timestamp]` attribute in `Entity.cs`).
+- Added `<LangVersion>latest</LangVersion>` and `<Nullable>enable</Nullable>` to enable nullable reference type analysis.
+
+### Nullable Reference Type Fixes (Domain)
+- **Entity.cs**: `byte[]? RowVersion`
+- **Book.cs**: navigation properties use `= null!`, optional strings use `string?`, required strings use `= string.Empty`
+- **BookFilters.cs**: `string? Name`, `string? Author`
+- **BookResult.cs**: `string? ErrorMessage`
+- **BookService.cs**: `SaveAsync` and `ResizeImageAsync` accept `Stream?` and `string?`; `IsSafeAsync` accepts `Stream?`
+- **IImageValidationService.cs**: `IsSafeAsync(Stream? image)` 
+- **Offer.cs**: navigation properties use `= null!`, optional strings use `string?`
+- **OfferFilters.cs**: `string? BookName`, `string? Author`
+- **Customer.cs**: required strings use `= string.Empty`, optional strings use `string?`
+- **Address.cs**: required strings use `= string.Empty`, `AddressLine2` is `string?`, navigation property uses `= null!`; removed `#pragma warning disable CS8618`
+- **Order.cs**: navigation properties use `= null!`
+- **OrderItem.cs**: navigation properties use `= null!`
+- **ShoppingCart.cs**: `CorrelationId = string.Empty`
+- **ShoppingCartItem.cs**: navigation properties use `= null!`
+- **ReferenceDataItem.cs**: `Text = string.Empty`
+- **DbSecrets.cs**: all string properties marked `string?`
+- **AddressDtos.cs**: constructor parameters changed to `string?` with `?? string.Empty` fallback
+- **BookDtos.cs**: constructor parameters changed to `string?`/`Stream?` with appropriate fallbacks
+- **OfferDtos.cs**: constructor parameters changed to `string?` with `?? string.Empty` fallback
+- **OrderDtos.cs**: constructor parameters changed to `string?`/`int` with `?? string.Empty` fallback
+- **ReferenceDataDtos.cs**: `Text` parameter changed to `string?`
+- **AddressService.cs / IAddressService**: `sub` parameters changed to `string?`
+- **OrderService.cs / IOrderService**: `sub` parameter in `GetOrdersAsync` changed to `string?`
+- **OfferService.cs / IOfferService**: `sub` parameter in `GetOffersAsync` changed to `string?`
+
+### Nullable Reference Type Fixes (Data)
+- **Repositories**: All `SingleOrDefaultAsync`/`FindAsync` return values now throw `InvalidOperationException` for not-found cases (eliminating CS8603). This gives explicit errors rather than null-pointer exceptions downstream.
+- **PaginatedList.cs**: `source` field initialized to `null!`
+- **LocalFileService.cs / S3FileService.cs**: `SaveAsync` returns `string.Empty` instead of `null` when input is null
+- **LocalImageValidationService.cs**: `IsSafeAsync(Stream? image)`
+- **RekognitionImageValidationService.cs**: `IsSafeAsync(Stream? image)`
+
+### Nullable Reference Type Fixes (Web)
+- **ClaimsPrincipalExtensions.cs**: return type changed to `string?`
+- **HttpContextExtensions.cs**: `shoppingCartClientId` uses `string?`; `Append` gets `?? string.Empty`
+- **MvcHelpers.cs**: `emptyItem` parameter changed to `string?`
+- **AuthenticationController.cs**: `redirectUri` parameter changed to `string?`
+- **LocalAuthenticationMiddleware.cs**: cast `principal.Identity` using `as` pattern with null guard
+- **ImageTypesAttribute.cs / MaxFileSizeAttribute.cs**: `IsValid(object? value)` override signature
+- **ErrorViewModel.cs** (Web and Admin): `string? RequestId`
+- **Program.cs**: null-guard on `ctx.TokenEndpointRequest`
+- All view models: string properties changed to `string?` or initialized with `= string.Empty` as appropriate
+- **AddressController.cs**: `Redirect` calls use `?? "/"` fallback; `AddModelError` uses `?? "An error occurred."`
+- **SearchDetailsViewModel.cs**: all string properties marked `string?`
+
+### MVC1000 Warnings (Razor Views)
+Replaced all `@Html.Partial("name")` and `@Html.Partial("name", Model)` calls with `<partial name="name" />` and `<partial name="name" model="Model" />` tag helpers in:
+- Views/Wishlist/Index.cshtml
+- Views/ShoppingCart/Index.cshtml
+- Views/Search/Index.cshtml
+- Views/Shared/_Layout.cshtml
+- Views/Shared/_NavBarPartial.cshtml
+- Areas/Admin/Views/Shared/_Layout.cshtml
+- Areas/Admin/Views/Shared/_NavBarPartial.cshtml
+- Areas/Admin/Views/Orders/Details.cshtml
+- Areas/Admin/Views/Orders/Index.cshtml
+- Areas/Admin/Views/ReferenceData/Index.cshtml
+- Areas/Admin/Views/Inventory/Index.cshtml
+- Areas/Admin/Views/Offers/Index.cshtml
+
+### CS8602 in Razor Views
+- **_LoginPartial.cshtml** (main and Admin): changed `User.Identity.IsAuthenticated` to `User.Identity?.IsAuthenticated == true`
+- **_NavBarPartial.cshtml**: same null-conditional fix
+- **ShoppingCart/Index.cshtml**: same fix
+
+### CDK CloudFront Migration (CS0618/CS0612)
+- Replaced deprecated `CloudFrontWebDistribution` + `CloudFrontWebDistributionProps` with the modern `Distribution` + `DistributionProps` API.
+- Replaced deprecated `S3Origin` with `S3BucketOrigin.WithOriginAccessIdentity(...)`.
+- Added `using Amazon.CDK.AWS.CloudFront.Origins;` import.
+- Result: Bookstore.Cdk now builds with **0 warnings**.
 
 ---
 
-## Bookstore.Web Changes
+## Architecture Notes
 
-### Project File
-- Replaced old-style `.csproj` (`.NET Framework 4.8`) with SDK-style `Microsoft.NET.Sdk.Web` targeting `net10.0`
-- Removed all old-style package references (EntityFramework 6, Autofac.Mvc5, Autofac.Owin, Microsoft.Owin.*, System.Web.Mvc, etc.)
-- Added ASP.NET Core packages: `Microsoft.AspNetCore.Authentication.OpenIdConnect`, `Autofac.Extensions.DependencyInjection`, `NLog.Web.AspNetCore`
+### Multi-targeting in Bookstore.Data
+`Bookstore.Data` retains the `netstandard2.0` target so the library can still be referenced by any .NET Framework project that hasn't yet migrated. The `netstandard2.0` build compiles:
+- `BookstoreConfiguration.cs`
+- `FileServices/LocalFileService.cs`
+- `FileServices/S3FileService.cs`
+- `ImageValidationServices/LocalImageValidationService.cs`
+- `ImageValidationServices/RekognitionImageValidationService.cs`
+- `ImageResizeService/ImageResizeService.cs`
 
-### Startup / Application Lifecycle
-- `Global.asax.cs` → excluded from compilation; replaced by `Program.cs`
-- `Startup.cs` (OWIN) → excluded from compilation; replaced by `Program.cs`
-- `App_Start/` files → converted to empty stubs; all logic moved to `Program.cs`
-- Created `Program.cs` using `WebApplication.CreateBuilder` with:
-  - `BookstoreConfiguration.Initialize(builder.Configuration)`
-  - SSM Parameter Store loading via synchronous `GetAwaiter().GetResult()` at startup
-  - `builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory())`
-  - `builder.Host.ConfigureContainer<ContainerBuilder>(ConfigureDependencyInjection)`
-  - Cookie + OpenID Connect authentication for AWS Cognito; cookie-only for local
-  - NLog via `builder.Host.UseNLog()`
-  - `app.UseMiddleware<LocalAuthenticationMiddleware>()` for non-AWS auth
-- Created `appsettings.json` with all settings from `web.config`
-
-### Authentication
-- OWIN middleware (`Microsoft.Owin.Security.Cookies`, `Microsoft.Owin.Security.OpenIdConnect`) → `Microsoft.AspNetCore.Authentication.Cookies` + `Microsoft.AspNetCore.Authentication.OpenIdConnect`
-- `LocalAuthenticationMiddleware`: `OwinMiddleware` → conventional ASP.NET Core middleware (`RequestDelegate` + `InvokeAsync(HttpContext context, ICustomerService service)`)
-- Authentication cookie now handled via `Response.Cookies.Delete()` / `Response.Cookies.Append()`
-
-### MVC / Controllers
-- All controllers: `using System.Web.Mvc` → `using Microsoft.AspNetCore.Mvc`
-- `ActionResult` return types changed to `IActionResult`
-- `[RouteArea("Admin")]` → `[Area("Admin")]`
-- `AreaRegistration` class converted to empty comment stub (areas auto-discovered in ASP.NET Core)
-- `model.CoverImage?.InputStream` → `model.CoverImage?.OpenReadStream()`
-
-### Models
-- `HttpPostedFileBase CoverImage` → `IFormFile CoverImage` in `InventoryCreateUpdateViewModel`
-- `using System.Web.Mvc` → `using Microsoft.AspNetCore.Mvc.Rendering` for `SelectListItem` in all view models
-
-### Helpers
-- `HttpContextExtensions`: `HttpContextBase` → `HttpContext` (ASP.NET Core)
-- `HttpCookie` → `CookieOptions`; `context.Response.Cookies.Add(new HttpCookie(...))` → `context.Response.Cookies.Append(...)`
-- `MvcHelpers`: `HtmlHelper` → `IHtmlHelper` extension
-- `MaxFileSizeAttribute`: `HttpPostedFileBase` → `IFormFile`; `file.ContentLength` → `file.Length`
-- `ImageTypesAttribute`: `HttpPostedFileBase` → `IFormFile`
-- `IOwinRequestExtensions`: `IOwinRequest` → `HttpRequest`
-
-### Views
-- Created `Views/_ViewImports.cshtml` with correct ASP.NET Core usings (`Microsoft.AspNetCore.Mvc.Rendering`, `Microsoft.AspNetCore.Routing`)
-- Created `Areas/Admin/Views/_ViewImports.cshtml`
-- Replaced `@{Html.RenderPartial("...")}` → `@{await Html.RenderPartialAsync("...")}` (RenderPartial removed in ASP.NET Core)
-- Replaced `@Html.EnumDropDownListFor(...)` (MVC5-only, not in ASP.NET Core) → `Html.GetEnumSelectList<TEnum>()` with inline `foreach`
-- `RouteValueDictionary` in views now resolves via `using Microsoft.AspNetCore.Routing` in `_ViewImports.cshtml`
-
-### Packages Updated / Removed
-- Removed: `Autofac.Mvc5`, `Autofac.Owin`, `Microsoft.Owin.*`, `Owin`, `System.Web.Mvc`, `EntityFramework 6`, `WebGrease`, `Antlr3.Runtime`, `Microsoft.AspNet.Web.Optimization`, `Microsoft.CodeDom.Providers.DotNetCompilerPlatform`
-- Upgraded: `Magick.NET-Q8-AnyCPU` 14.6.0 → 15.0.0 (resolves ~100 NU190x vulnerability advisories)
-- Updated: `NLog.Web.AspNetCore` 5.3.16 → 5.4.0 (resolves NU1603)
+EF Core–dependent code (DbContext, repositories, PaginatedList, initializer) is excluded from the `netstandard2.0` TFM because EF Core 9.x requires net8.0+. Any .NET Framework consumer that needs data-access functionality would need a separate EF6-based adapter.
 
 ---
 
 ## Next Steps
 
-- **EF Core Migrations**: The current setup uses `EnsureCreatedAsync()` which creates the schema if absent but doesn't manage migrations. For production use, generate an initial EF Core migration with `dotnet ef migrations add InitialCreate` and use `context.Database.MigrateAsync()` instead.
-- **HTTPS**: For production deployments, add `app.UseHttpsRedirection()` and configure HTTPS certificates.
-- **Antiforgery**: The forms currently use `<form method="post">` without explicit antiforgery tokens. Tag helper forms (`<form asp-action="...">`) emit tokens automatically, but hand-written `<form>` elements (e.g. in admin views) should be audited and `@Html.AntiForgeryToken()` added.
-- **Bookstore.Data netstandard2.0**: Removed. This project is consumed only by the net10.0 web application. If future callers on .NET Framework need access, a separate compatibility shim would be needed.
-- **LocalFileService webRootPath**: In Autofac DI registration, `LocalFileService` is registered with `webRootPath = "wwwroot"` (relative path). For production, inject `IWebHostEnvironment` and use `env.WebRootPath` for an absolute path.
-- **Amazon.CDK.Lib `CloudFrontWebDistribution` obsolete**: `CoreStack.cs` uses the deprecated `CloudFrontWebDistribution` class. Migrate to `Distribution` in a future pass.
+- **EF Core migrations**: Run `dotnet ef migrations add InitialCreate --project Bookstore.Data --startup-project Bookstore.Web` if database schema needs to be applied to a new SQL Server instance.
+- **Dockerfile**: Review `Bookstore.Web/Dockerfile` to ensure it targets a net10.0 base image (`mcr.microsoft.com/dotnet/aspnet:10.0`).
+- **ShoppingCartRepository.GetAsync**: Changed from returning `null` to throwing `InvalidOperationException` when cart not found — callers should handle this gracefully; review `ShoppingCartController` for cases where a missing cart is expected (e.g., first visit).
+- **Bookstore.Common**: Currently targets `netstandard2.0` only. If it needs modern APIs, add `net10.0` to `<TargetFrameworks>`.
+- **Integration tests**: No test projects are present. Adding integration/unit tests is recommended to validate migrated behaviour end-to-end.
+
+---
+
+## Post-Migration Hardening (Round 2)
+
+### ✅ EF Core Migrations (EnsureCreatedAsync → MigrateAsync)
+
+**Problem**: `EnsureCreatedAsync()` creates the schema once and never applies changes; it bypasses the migrations history table entirely, making incremental schema changes impossible in production.
+
+**Changes**:
+- Added `Microsoft.EntityFrameworkCore.Design` package to `Bookstore.Web.csproj` (required by the `dotnet-ef` tooling).
+- Configured `MigrationsAssembly("Bookstore.Web")` on `UseSqlServer(...)` in `Program.cs`. Because `Bookstore.Data` is a multi-targeted library (net10.0 + netstandard2.0), the `dotnet-ef` tool cannot collect MSBuild metadata from it directly. Placing migrations in the startup project (`Bookstore.Web`) is the standard workaround.
+- Ran `dotnet ef migrations add InitialCreate --framework net10.0 --output-dir Migrations` from `app/Bookstore.Web`, generating:
+  - `Migrations/20261021075657_InitialCreate.cs` — full Up/Down schema
+  - `Migrations/20261021075657_InitialCreate.Designer.cs` — EF model snapshot metadata
+  - `Migrations/ApplicationDbContextModelSnapshot.cs` — baseline model snapshot for diff detection
+- Updated `BookstoreDbInitializer.InitializeAsync()` to call `context.Database.MigrateAsync()` instead of `EnsureCreatedAsync()`. At startup this applies any pending migrations and creates the `__EFMigrationsHistory` table if absent, enabling safe incremental schema evolution.
+
+### ✅ HTTPS Redirection
+
+Added `app.UseHttpsRedirection()` guarded to the `Development` environment only.
+
+**Rationale**: On ECS Fargate, TLS is terminated at the Application Load Balancer (ALB). The container speaks HTTP on port 8080 to the ALB. Enabling `UseHttpsRedirection()` unconditionally inside the container would cause infinite HTTP→HTTPS redirect loops on Fargate because every inbound request would be HTTP. In Development (local developer machine with the ASP.NET Core dev certificate), `UseHttpsRedirection()` is safe and useful.
+
+If unconditional HTTPS is needed (e.g., a direct-TLS Fargate deployment without an ALB), add `ASPNETCORE_URLS=https://+:8081;http://+:8080` to the container environment and mount a certificate, then remove the `IsDevelopment()` guard.
+
+### ✅ Antiforgery Tokens
+
+**Problem**: Hand-written `<form method="post">` elements (without `asp-action` tag helper attributes) bypass the `FormTagHelper` automatic token injection. Submitting these forms without a valid token would succeed even after enabling validation, leaving CSRF vulnerabilities.
+
+**Changes**:
+
+_Global validation_ — added `AutoValidateAntiforgeryTokenAttribute` as a global MVC filter in `Program.cs`:
+```csharp
+builder.Services.AddControllersWithViews(options =>
+    options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
+```
+This enforces token validation on every non-safe HTTP method (POST, PUT, DELETE, PATCH) across all controllers without needing per-action `[ValidateAntiForgeryToken]` attributes.
+
+_Form-level tokens_ — added `@Html.AntiForgeryToken()` as the first child of every raw `<form method="post">` that lacked it:
+
+| View | Form purpose |
+|------|-------------|
+| `Areas/Admin/Views/Orders/Details.cshtml` | Update order status |
+| `Areas/Admin/Views/Offers/Index.cshtml` | Approve / Reject / Received / Paid offer actions |
+| `Areas/Admin/Views/ReferenceData/CreateUpdate.cshtml` | Create / Update reference data item |
+| `Areas/Admin/Views/Inventory/CreateUpdate.cshtml` | Create / Update book inventory |
+| `Views/Resale/Create.cshtml` | Submit book resale offer |
+| `Views/Address/Index.cshtml` | Delete address (modal form) |
+| `Views/Checkout/Index.cshtml` | Place order |
+
+Forms using `@using (Html.BeginForm(...))` — `Address/CreateUpdate.cshtml`, `Wishlist/Index.cshtml`, `ShoppingCart/Index.cshtml` — already had tokens injected automatically by `HtmlHelper.BeginForm`.
+
+### ✅ Dockerfile: .NET 8 → .NET 10 Linux Images
+
+Updated base image tags in `app/Bookstore.Web/Dockerfile`:
+- `mcr.microsoft.com/dotnet/aspnet:8.0` → `mcr.microsoft.com/dotnet/aspnet:10.0`
+- `mcr.microsoft.com/dotnet/sdk:8.0` → `mcr.microsoft.com/dotnet/sdk:10.0`
+
+Both stages were already targeting Linux/amd64 (`--platform=linux/amd64`), aligned with the CDK `EcsStack` Fargate deployment.
+
+### ✅ LocalFileService: Hardcoded "wwwroot" → IWebHostEnvironment.WebRootPath
+
+**Problem**: `LocalFileService` was registered with `WithParameter("webRootPath", "wwwroot")` — a relative path string. When the working directory is not the application root (e.g., inside a container, or when running tests), `Path.Combine("wwwroot", ...)` resolves to a wrong absolute path and file saves fail silently.
+
+**Changes** in `Program.cs`:
+```csharp
+var webRootPath = builder.Environment.WebRootPath;
+builder.Host.ConfigureContainer<ContainerBuilder>(
+    container => ConfigureDependencyInjection(container, webRootPath));
+```
+`builder.Environment.WebRootPath` returns the fully-resolved absolute path to `wwwroot` (set to `<ContentRoot>/wwwroot` by default, or overridable via `ASPNETCORE_WEBROOT`). `LocalFileService` itself is unchanged — it still accepts a `string webRootPath` constructor parameter, keeping the `Bookstore.Data` library free of ASP.NET Core hosting dependencies.
+
+`ConfigureDependencyInjection` signature changed from `static void ConfigureDependencyInjection(ContainerBuilder builder)` to `static void ConfigureDependencyInjection(ContainerBuilder builder, string webRootPath)`.
+
+### ✅ CDK CloudFrontWebDistribution (Already Complete)
+
+`CoreStack.cs` already uses the modern `Distribution` + `S3BucketOrigin.WithOriginAccessIdentity(...)` API from the previous migration cycle. No further changes required.

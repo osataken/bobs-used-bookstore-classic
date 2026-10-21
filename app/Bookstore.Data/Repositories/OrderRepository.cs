@@ -40,12 +40,14 @@ namespace Bookstore.Data.Repositories
                 .Include(x => x.OrderItems)
                     .ThenInclude(y => y.Book)
                         .ThenInclude(b => b.Publisher)
-                .SingleOrDefaultAsync(x => x.Id == id);
+                .SingleOrDefaultAsync(x => x.Id == id)
+                ?? throw new InvalidOperationException($"Order with id {id} not found.");
         }
 
         async Task<Order> IOrderRepository.GetAsync(int id, string sub)
         {
-            return await dbContext.Order.SingleOrDefaultAsync(x => x.Id == id && x.Customer.Sub == sub);
+            return await dbContext.Order.SingleOrDefaultAsync(x => x.Id == id && x.Customer.Sub == sub)
+                ?? throw new InvalidOperationException($"Order with id {id} not found for customer '{sub}'.");
         }
 
         async Task<IEnumerable<Book>> IOrderRepository.ListBestSellingBooksAsync(int count)
@@ -53,7 +55,7 @@ namespace Bookstore.Data.Repositories
             return await dbContext.OrderItem
                 .GroupBy(x => x.BookId)
                 .OrderByDescending(x => x.Count())
-                .Select(x => x.FirstOrDefault().Book)
+                .Select(x => x.First().Book)
                 .Take(count)
                 .ToListAsync();
         }
@@ -70,7 +72,8 @@ namespace Bookstore.Data.Repositories
                     PastDueOrders = x.Count(y => y.OrderStatus == OrderStatus.Ordered && y.DeliveryDate < DateTime.UtcNow),
                     OrdersThisMonth = x.Count(y => y.CreatedOn >= startOfMonth),
                     OrdersTotal = x.Count()
-                }).SingleOrDefaultAsync();
+                }).SingleOrDefaultAsync()
+                ?? throw new InvalidOperationException("Failed to retrieve order statistics.");
         }
 
         async Task<IPaginatedList<Order>> IOrderRepository.ListAsync(OrderFilters filters, int pageIndex, int pageSize)

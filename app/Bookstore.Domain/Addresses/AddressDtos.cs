@@ -3,21 +3,21 @@
     public class CreateAddressDto 
     { 
         public CreateAddressDto(
-        string AddressLine1,
-        string AddressLine2,
-        string City,
-        string State,
-        string Country,
-        string ZipCode,
-        string CustomerSub)
+        string? AddressLine1,
+        string? AddressLine2,
+        string? City,
+        string? State,
+        string? Country,
+        string? ZipCode,
+        string? CustomerSub)
         {
-            this.AddressLine1 = AddressLine1;
-            this.AddressLine2 = AddressLine2;
-            this.City = City;
-            this.State = State;
-            this.Country = Country;
-            this.ZipCode = ZipCode;
-            this.CustomerSub = CustomerSub;
+            this.AddressLine1 = AddressLine1 ?? string.Empty;
+            this.AddressLine2 = AddressLine2 ?? string.Empty;
+            this.City = City ?? string.Empty;
+            this.State = State ?? string.Empty;
+            this.Country = Country ?? string.Empty;
+            this.ZipCode = ZipCode ?? string.Empty;
+            this.CustomerSub = CustomerSub ?? string.Empty;
         }
 
         public string AddressLine1 { get; }
@@ -33,22 +33,22 @@
     {
         public UpdateAddressDto(
         int AddressId,
-        string AddressLine1,
-        string AddressLine2,
-        string City,
-        string State,
-        string Country,
-        string ZipCode,
-        string CustomerSub)
+        string? AddressLine1,
+        string? AddressLine2,
+        string? City,
+        string? State,
+        string? Country,
+        string? ZipCode,
+        string? CustomerSub)
         {
             this.AddressId = AddressId;
-            this.AddressLine1 = AddressLine1;
-            this.AddressLine2 = AddressLine2;
-            this.City = City;
-            this.State = State;
-            this.Country = Country;
-            this.ZipCode = ZipCode;
-            this.CustomerSub = CustomerSub;
+            this.AddressLine1 = AddressLine1 ?? string.Empty;
+            this.AddressLine2 = AddressLine2 ?? string.Empty;
+            this.City = City ?? string.Empty;
+            this.State = State ?? string.Empty;
+            this.Country = Country ?? string.Empty;
+            this.ZipCode = ZipCode ?? string.Empty;
+            this.CustomerSub = CustomerSub ?? string.Empty;
         }
 
         public int AddressId { get; }
@@ -65,10 +65,10 @@
     {
         public DeleteAddressDto(
         int AddressId,
-        string CustomerSub)
+        string? CustomerSub)
         {
             this.AddressId = AddressId;
-            this.CustomerSub = CustomerSub;
+            this.CustomerSub = CustomerSub ?? string.Empty;
         }
 
         public int AddressId { get; }

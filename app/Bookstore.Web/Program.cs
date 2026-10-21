@@ -55,16 +55,23 @@ builder.Host.UseNLog();
 
 // ── 3. Autofac DI ────────────────────────────────────────────────────────
 builder.Host.UseServiceProviderFactory(new AutofacServiceProviderFactory());
-builder.Host.ConfigureContainer<ContainerBuilder>(ConfigureDependencyInjection);
+var webRootPath = builder.Environment.WebRootPath;
+builder.Host.ConfigureContainer<ContainerBuilder>(container => ConfigureDependencyInjection(container, webRootPath));
 
 // ── 4. MVC + Views ───────────────────────────────────────────────────────
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+{
+    // Automatically validate antiforgery tokens on all non-GET/HEAD/OPTIONS/TRACE requests.
+    // Forms that POST without a valid token will receive a 400 Bad Request.
+    options.Filters.Add(new Microsoft.AspNetCore.Mvc.AutoValidateAntiforgeryTokenAttribute());
+});
 builder.Services.AddHttpContextAccessor();
 
 // ── 5. EF Core ───────────────────────────────────────────────────────────
 var connectionString = BookstoreConfiguration.GetConnectionString("BookstoreDatabaseConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString,
+        sql => sql.MigrationsAssembly("Bookstore.Web")));
 
 // ── 6. Authentication ────────────────────────────────────────────────────
 if (BookstoreConfiguration.GetSetting("Services/Authentication") == "aws")
@@ -99,7 +106,8 @@ if (BookstoreConfiguration.GetSetting("Services/Authentication") == "aws")
                 },
                 OnAuthorizationCodeReceived = ctx =>
                 {
-                    ctx.TokenEndpointRequest.RedirectUri = $"{ctx.Request.Scheme}://{ctx.Request.Host}/signin-oidc";
+                    if (ctx.TokenEndpointRequest != null)
+                        ctx.TokenEndpointRequest.RedirectUri = $"{ctx.Request.Scheme}://{ctx.Request.Host}/signin-oidc";
                     return Task.CompletedTask;
                 },
                 OnTokenValidated = async ctx =>
@@ -143,6 +151,15 @@ using (var scope = app.Services.CreateScope())
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
+}
+
+// Enable HTTPS redirection in Development (local TLS via dev cert).
+// In production (ECS Fargate behind ALB) HTTPS is terminated at the ALB,
+// so the container itself speaks HTTP and this middleware must be skipped
+// to avoid redirect loops.
+if (app.Environment.IsDevelopment())
+{
+    app.UseHttpsRedirection();
 }
 
 app.UseStaticFiles();
@@ -230,7 +247,7 @@ static void LoadRemoteConfiguration(IConfiguration configuration)
     }
 }
 
-static void ConfigureDependencyInjection(ContainerBuilder builder)
+static void ConfigureDependencyInjection(ContainerBuilder builder, string webRootPath)
 {
     // Domain services
     builder.RegisterType<BookService>().As<IBookService>();
@@ -261,8 +278,10 @@ static void ConfigureDependencyInjection(ContainerBuilder builder)
     }
     else
     {
+        // Use the actual WebRootPath from IWebHostEnvironment so the path is
+        // correct regardless of working directory (local dev, container, etc.)
         builder.RegisterType<LocalFileService>()
-            .WithParameter("webRootPath", "wwwroot")
+            .WithParameter("webRootPath", webRootPath)
             .As<IFileService>();
     }
 

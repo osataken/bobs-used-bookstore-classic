@@ -2,10 +2,10 @@
 {
     public class CreateOrderDto
     {
-        public CreateOrderDto(string CustomerSub, string CorrelationId, int AddressId)
+        public CreateOrderDto(string? CustomerSub, string? CorrelationId, int AddressId)
         {
-            this.CustomerSub = CustomerSub;
-            this.CorrelationId = CorrelationId;
+            this.CustomerSub = CustomerSub ?? string.Empty;
+            this.CorrelationId = CorrelationId ?? string.Empty;
             this.AddressId = AddressId;
         }
 
@@ -28,9 +28,9 @@
 
     public class CancelOrderDto
     {
-        public CancelOrderDto(string CustomerSub, int OrderId)
+        public CancelOrderDto(string? CustomerSub, int OrderId)
         {
-            this.CustomerSub = CustomerSub;
+            this.CustomerSub = CustomerSub ?? string.Empty;
             this.OrderId = OrderId;
         }
 

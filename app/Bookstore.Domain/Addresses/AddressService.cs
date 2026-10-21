@@ -6,9 +6,9 @@ namespace Bookstore.Domain.Addresses
 {
     public interface IAddressService
     {
-        Task<Address> GetAddressAsync(string sub, int id);
+        Task<Address> GetAddressAsync(string? sub, int id);
 
-        Task<IEnumerable<Address>> GetAddressesAsync(string sub);
+        Task<IEnumerable<Address>> GetAddressesAsync(string? sub);
 
         Task DeleteAddressAsync(DeleteAddressDto deleteAddressDto);
 
@@ -28,14 +28,14 @@ namespace Bookstore.Domain.Addresses
             this.customerRepository = customerRepository;
         }
 
-        public async Task<Address> GetAddressAsync(string sub, int id)
+        public async Task<Address> GetAddressAsync(string? sub, int id)
         {
-            return await addressRepository.GetAsync(sub, id);
+            return await addressRepository.GetAsync(sub ?? string.Empty, id);
         }
 
-        public async Task<IEnumerable<Address>> GetAddressesAsync(string sub)
+        public async Task<IEnumerable<Address>> GetAddressesAsync(string? sub)
         {
-            return await addressRepository.ListAsync(sub);
+            return await addressRepository.ListAsync(sub ?? string.Empty);
         }
 
         public async Task CreateAddressAsync(CreateAddressDto dto)

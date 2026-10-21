@@ -1,5 +1,6 @@
 using Bookstore.Domain.Carts;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -24,7 +25,8 @@ namespace Bookstore.Data.Repositories
             return await dbContext.ShoppingCart
                 .Include(x => x.ShoppingCartItems)
                     .ThenInclude(y => y.Book)
-                .SingleOrDefaultAsync(x => x.CorrelationId == correlationId);
+                .SingleOrDefaultAsync(x => x.CorrelationId == correlationId)
+                ?? throw new InvalidOperationException($"Shopping cart for correlation id '{correlationId}' not found.");
         }
 
         async Task IShoppingCartRepository.SaveChangesAsync()

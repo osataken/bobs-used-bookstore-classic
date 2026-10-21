@@ -1,5 +1,6 @@
 using Bookstore.Domain.Customers;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Threading.Tasks;
 
 namespace Bookstore.Data.Repositories
@@ -20,12 +21,12 @@ namespace Bookstore.Data.Repositories
 
         async Task<Customer> ICustomerRepository.GetAsync(int id)
         {
-            return await dbContext.Customer.FindAsync(id);
+            return await dbContext.Customer.FindAsync(id) ?? throw new InvalidOperationException($"Customer with id {id} not found.");
         }
 
         async Task<Customer> ICustomerRepository.GetAsync(string sub)
         {
-            return await dbContext.Customer.SingleOrDefaultAsync(x => x.Sub == sub);
+            return await dbContext.Customer.SingleOrDefaultAsync(x => x.Sub == sub) ?? throw new InvalidOperationException($"Customer with sub '{sub}' not found.");
         }
 
         async Task ICustomerRepository.SaveChangesAsync()

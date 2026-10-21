@@ -20,10 +20,10 @@ namespace Bookstore.Domain.Orders
         private readonly List<OrderItem> orderItems = new List<OrderItem>();
 
         public int CustomerId { get; set; }
-        public Customer Customer { get; set; }
+        public Customer Customer { get; set; } = null!;
 
         public int AddressId { get; set; }
-        public Address Address { get; set; }
+        public Address Address { get; set; } = null!;
 
         public ICollection<OrderItem> OrderItems => orderItems;
 
