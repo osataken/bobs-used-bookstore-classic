@@ -27,19 +27,19 @@ namespace Bookstore.Web.ViewModel.Address
 
         public int Id { get; set; }
 
-        public string AddressLine1 { get; set; }
+        public string? AddressLine1 { get; set; }
 
-        public string AddressLine2 { get; set; }
+        public string? AddressLine2 { get; set; }
 
-        public string City { get; set; }
+        public string? City { get; set; }
 
-        public string State { get; set; }
+        public string? State { get; set; }
 
-        public string Country { get; set; }
+        public string? Country { get; set; }
 
-        public string ZipCode { get; set; }
+        public string? ZipCode { get; set; }
 
-        public string ReturnUrl { get; set; }
+        public string? ReturnUrl { get; set; }
 
         public IEnumerable<SelectListItem> States => new List<SelectListItem>
         {

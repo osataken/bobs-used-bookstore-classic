@@ -10,6 +10,7 @@
 </div>
 
 <form class="row justify-content-center" method="post">
+    @Html.AntiForgeryToken()
     @Html.HiddenFor(m => m.Id)
 
     <div class="col-4">

@@ -1,20 +1,42 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <OutputType>Library</OutputType>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <!-- EF Core packages: only compatible with net10.0 (requires net8.0+) -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.4" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4" PrivateAssets="all" />
+  </ItemGroup>
+
+  <!-- Packages compatible with both TFMs -->
   <ItemGroup>
     <PackageReference Include="AWSSDK.Rekognition" Version="3.7.400.129" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.416.5" />
     <PackageReference Include="Magick.NET-Q8-AnyCPU" Version="15.0.0" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.4" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.4" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.0.4" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
     <PackageReference Include="System.Configuration.ConfigurationManager" Version="9.0.4" />
   </ItemGroup>
+
+  <!-- Exclude EF Core-dependent files from netstandard2.0 build -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <Compile Remove="ApplicationDbContext.cs" />
+    <Compile Remove="BookstoreDbInitializer.cs" />
+    <Compile Remove="PaginatedList.cs" />
+    <Compile Remove="Repositories\AddressRepository.cs" />
+    <Compile Remove="Repositories\BookRepository.cs" />
+    <Compile Remove="Repositories\CustomerRepository.cs" />
+    <Compile Remove="Repositories\OfferRepository.cs" />
+    <Compile Remove="Repositories\OrderRepository.cs" />
+    <Compile Remove="Repositories\ReferenceDataRepository.cs" />
+    <Compile Remove="Repositories\ShoppingCartRepository.cs" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="..\Bookstore.Domain\Bookstore.Domain.csproj" />
   </ItemGroup>

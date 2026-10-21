@@ -9,7 +9,7 @@ namespace Bookstore.Domain.Carts
 
         public List<ShoppingCartItem> ShoppingCartItems { get; private set; } = new List<ShoppingCartItem>();
 
-        public string CorrelationId { get; set; }
+        public string CorrelationId { get; set; } = string.Empty;
 
         public ShoppingCart(string correlationId)
         {

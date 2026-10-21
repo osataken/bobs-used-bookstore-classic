@@ -29,7 +29,8 @@ namespace Bookstore.Data.Repositories
                     PendingOffers = x.Count(y => y.OfferStatus == OfferStatus.PendingApproval),
                     OffersThisMonth = x.Count(y => y.CreatedOn >= startOfMonth),
                     OffersTotal = x.Count()
-                }).SingleOrDefaultAsync();
+                }).SingleOrDefaultAsync()
+                ?? throw new InvalidOperationException("Failed to retrieve offer statistics.");
         }
 
         async Task IOfferRepository.AddAsync(Offer offer)
@@ -39,7 +40,7 @@ namespace Bookstore.Data.Repositories
 
         Task<Offer> IOfferRepository.GetAsync(int id)
         {
-            return dbContext.Offer.Include(x => x.Customer).SingleOrDefaultAsync(x => x.Id == id);
+            return dbContext.Offer.Include(x => x.Customer).SingleAsync(x => x.Id == id);
         }
 
         async Task<IPaginatedList<Offer>> IOfferRepository.ListAsync(OfferFilters filters, int pageIndex, int pageSize)

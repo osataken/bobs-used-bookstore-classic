@@ -108,7 +108,7 @@ namespace Bookstore.Domain.Books
             return await SaveAsync(book, dto.CoverImage, dto.CoverImageFileName);
         }
 
-        private async Task<BookResult> SaveAsync(Book book, Stream coverImage, string coverImageFileName)
+        private async Task<BookResult> SaveAsync(Book book, Stream? coverImage, string? coverImageFileName)
         {
             var resizedCoverImage = await ResizeImageAsync(coverImage);
 
@@ -116,27 +116,29 @@ namespace Bookstore.Domain.Books
 
             if (!imageIsSafe) return new BookResult(false, "The image failed the safety check. Please try another image.");
 
-            await SaveImageAsync(book, resizedCoverImage, coverImageFileName);
+            if (resizedCoverImage != null)
+                await SaveImageAsync(book, resizedCoverImage, coverImageFileName);
 
             await bookRepository.SaveChangesAsync();
 
             return new BookResult(true, null);
         }
 
-        private async Task<Stream> ResizeImageAsync(Stream coverImage)
+        private async Task<Stream?> ResizeImageAsync(Stream? coverImage)
         {
             if (coverImage == null) return null;
 
             return await imageResizeService.ResizeImageAsync(coverImage);
         }
 
-        private async Task SaveImageAsync(Book book, Stream coverImage, string coverImageFilename)
+        private async Task SaveImageAsync(Book book, Stream coverImage, string? coverImageFilename)
         {
-            var imageUrl = await fileService.SaveAsync(coverImage, coverImageFilename);
+            var imageUrl = await fileService.SaveAsync(coverImage, coverImageFilename ?? string.Empty);
 
             if (coverImage != null)
             {
-                await fileService.DeleteAsync(book.CoverImageUrl);
+                if (book.CoverImageUrl != null)
+                    await fileService.DeleteAsync(book.CoverImageUrl);
                 book.CoverImageUrl = imageUrl;
             }
         }

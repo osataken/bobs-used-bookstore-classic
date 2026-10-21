@@ -2,10 +2,10 @@
 {
     public class CreateReferenceDataItemDto
     {
-        public CreateReferenceDataItemDto(ReferenceDataType ReferenceDataType, string Text)
+        public CreateReferenceDataItemDto(ReferenceDataType ReferenceDataType, string? Text)
         {
             this.ReferenceDataType = ReferenceDataType;
-            this.Text = Text;
+            this.Text = Text ?? string.Empty;
         }
 
         public ReferenceDataType ReferenceDataType { get; }
@@ -14,11 +14,11 @@
 
     public class UpdateReferenceDataItemDto
     {
-        public UpdateReferenceDataItemDto(int Id, ReferenceDataType ReferenceDataType, string Text)
+        public UpdateReferenceDataItemDto(int Id, ReferenceDataType ReferenceDataType, string? Text)
         {
             this.Id = Id;
             this.ReferenceDataType = ReferenceDataType;
-            this.Text = Text;
+            this.Text = Text ?? string.Empty;
         }
 
         public int Id { get; }

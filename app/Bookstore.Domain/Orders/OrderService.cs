@@ -11,7 +11,7 @@ namespace Bookstore.Domain.Orders
     {
         Task<IPaginatedList<Order>> GetOrdersAsync(OrderFilters filters, int pageIndex = 1, int pageSize = 10);
 
-        Task<IEnumerable<Order>> GetOrdersAsync(string sub);
+        Task<IEnumerable<Order>> GetOrdersAsync(string? sub);
 
         Task<Order> GetOrderAsync(int id);
 
@@ -45,9 +45,9 @@ namespace Bookstore.Domain.Orders
             return await orderRepository.ListAsync(filters, pageIndex, pageSize);
         }
 
-        public async Task<IEnumerable<Order>> GetOrdersAsync(string sub)
+        public async Task<IEnumerable<Order>> GetOrdersAsync(string? sub)
         {
-            return await orderRepository.ListAsync(sub);
+            return await orderRepository.ListAsync(sub ?? string.Empty);
         }
 
         public async Task<Order> GetOrderAsync(int id)

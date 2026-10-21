@@ -9,7 +9,7 @@ namespace Bookstore.Web.Helpers
         {
             const string CookieKey = "ShoppingCartId";
 
-            string shoppingCartClientId = context.Request.Cookies[CookieKey];
+            string? shoppingCartClientId = context.Request.Cookies[CookieKey];
 
             if (string.IsNullOrWhiteSpace(shoppingCartClientId))
             {
@@ -18,13 +18,13 @@ namespace Bookstore.Web.Helpers
                     : Guid.NewGuid().ToString();
             }
 
-            context.Response.Cookies.Append(CookieKey, shoppingCartClientId, new CookieOptions
+            context.Response.Cookies.Append(CookieKey, shoppingCartClientId ?? string.Empty, new CookieOptions
             {
                 Expires = DateTimeOffset.UtcNow.AddYears(1),
                 Path = "/"
             });
 
-            return shoppingCartClientId;
+            return shoppingCartClientId ?? string.Empty;
         }
     }
 }
