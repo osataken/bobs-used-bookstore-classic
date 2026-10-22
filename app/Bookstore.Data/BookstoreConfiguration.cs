@@ -1,6 +1,6 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
+using Microsoft.Extensions.Configuration;
 
 namespace BobsBookstoreClassic.Data
 {
@@ -10,25 +10,34 @@ namespace BobsBookstoreClassic.Data
 
         private static BookstoreConfiguration Instance => Lazy.Value;
 
-        private readonly Dictionary<string, string> _appSettings = new Dictionary<string, string>();
-        private readonly Dictionary<string, string> _connectionStrings = new Dictionary<string, string>();
+        private readonly Dictionary<string, string> _appSettings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, string> _connectionStrings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        private BookstoreConfiguration()
+        private BookstoreConfiguration() { }
+
+        public static void Initialize(IConfiguration configuration)
         {
-            foreach (string key in ConfigurationManager.AppSettings)
+            // Load all configuration values from IConfiguration
+            foreach (var kvp in configuration.AsEnumerable())
             {
-                _appSettings[key] = ConfigurationManager.AppSettings[key];
+                if (kvp.Value == null) continue;
 
-                if (Environment.GetEnvironmentVariable(key) != null)
+                if (kvp.Key.StartsWith("ConnectionStrings:", StringComparison.OrdinalIgnoreCase))
                 {
-                    _appSettings[key] = Environment.GetEnvironmentVariable(key);
+                    var csName = kvp.Key.Substring("ConnectionStrings:".Length);
+                    Instance._connectionStrings[csName] = kvp.Value;
                 }
-            }
+                else
+                {
+                    Instance._appSettings[kvp.Key] = kvp.Value;
+                }
 
-            foreach (ConnectionStringSettings connectionStringSettings in ConfigurationManager.ConnectionStrings)
-            {
-                _connectionStrings[connectionStringSettings.Name] = connectionStringSettings.ConnectionString;
-
+                // Allow environment variables to override (using the same key)
+                var envValue = Environment.GetEnvironmentVariable(kvp.Key);
+                if (envValue != null)
+                {
+                    Instance._appSettings[kvp.Key] = envValue;
+                }
             }
         }
 
@@ -39,13 +48,13 @@ namespace BobsBookstoreClassic.Data
 
         public static string GetSetting(string key)
         {
-            return Instance._appSettings[key];
+            return Instance._appSettings.TryGetValue(key, out var value) ? value : null;
         }
 
         public static T GetSetting<T>(string key)
         {
-            var value = Instance._appSettings[key];
-
+            var value = GetSetting(key);
+            if (value == null) return default;
             return (T)Convert.ChangeType(value, typeof(T));
         }
 
@@ -56,8 +65,7 @@ namespace BobsBookstoreClassic.Data
 
         public static string GetConnectionString(string key)
         {
-            return Instance._connectionStrings[key];
+            return Instance._connectionStrings.TryGetValue(key, out var value) ? value : null;
         }
-
     }
 }
