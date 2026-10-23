@@ -3,6 +3,7 @@ using Amazon.CDK;
 using Amazon.CDK.AWS.EC2;
 using Amazon.CDK.AWS.ECS;
 using Amazon.CDK.AWS.ECS.Patterns;
+using Amazon.CDK.AWS.Ecr.Assets;
 using Amazon.CDK.AWS.S3;
 using Constructs;
 using Amazon.CDK.AWS.Cognito;
@@ -54,7 +55,11 @@ public class EcsStack : Stack
                 HealthCheckGracePeriod = Duration.Seconds(30),
                 TaskImageOptions = new ApplicationLoadBalancedTaskImageOptions
                 {
-                    Image = ContainerImage.FromAsset(".\\"),
+                    Image = ContainerImage.FromAsset("./", new AssetImageProps
+                    {
+                        File = "app/Bookstore.Web/Dockerfile"
+                    }),
+                    ContainerPort = 8080,
                     Environment = new Dictionary<string, string>
                     {
                             { "Services/Authentication", "local" }, //Can't use Cognito hosted UI without an https redirect.
@@ -67,7 +72,7 @@ public class EcsStack : Stack
                 RuntimePlatform = new RuntimePlatform
                 {
                     CpuArchitecture = CpuArchitecture.X86_64,
-                    OperatingSystemFamily = OperatingSystemFamily.WINDOWS_SERVER_2019_CORE
+                    OperatingSystemFamily = OperatingSystemFamily.LINUX
                 }
             });
 
