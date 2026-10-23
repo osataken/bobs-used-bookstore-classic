@@ -1,9 +1,10 @@
-﻿using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 using Bookstore.Web.Helpers;
 using Bookstore.Domain.Books;
 using Bookstore.Domain.Carts;
 using Bookstore.Web.ViewModel.Search;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bookstore.Web.Controllers
 {
@@ -23,7 +24,13 @@ namespace Bookstore.Web.Controllers
         {
             var books = await inventoryService.GetBooksAsync(searchString, sortBy, pageIndex, pageSize);
 
-            return View(new SearchIndexViewModel(books));
+            // Core binds a missing searchString to null (Framework bound it to ""), so the search
+            // box and sort dropdown are given explicit values to keep them populated across pages.
+            return View(new SearchIndexViewModel(books)
+            {
+                SearchString = searchString ?? string.Empty,
+                SortBy = sortBy ?? "Name"
+            });
         }
 
         public async Task<ActionResult> Details(int id)

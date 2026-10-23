@@ -78,7 +78,9 @@ public class EcsStack : Stack
 
         service.TargetGroup.HealthCheck = new HealthCheck
         {
-            Path = "/Home/Privacy",
+            // Dedicated anonymous health endpoint: the app applies a global authorize filter,
+            // so any real page would answer the load balancer with a 302 login challenge.
+            Path = "/health",
             HealthyThresholdCount = 2,
             Timeout = Duration.Seconds(25)
         };

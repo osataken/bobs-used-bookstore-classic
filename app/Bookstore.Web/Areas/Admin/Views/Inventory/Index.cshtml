@@ -4,11 +4,11 @@
     ViewData["Title"] = "Inventory";
 }
 
-@Html.Partial("_MessageBanner")
+<partial name="_MessageBanner" />
 
 <div class="d-flex m-3">
     <h5 class="me-auto">Inventory</h5>
-    @Html.ActionLink("New Book", "Create", new { controller = "Inventory"}, new { @class = "btn btn-primary" })
+    @Html.ActionLink("New Book", "Create", "Inventory", new { area = "Admin" }, new { @class = "btn btn-primary" })
 </div>
 
 <div class="card mx-3">
@@ -58,7 +58,7 @@
             </div>
 
             <div class="col-12">
-                @Html.ActionLink("Clear", "Index", new { controller = "Inventory" }, new { @class = "btn btn-secondary" })
+                @Html.ActionLink("Clear", "Index", "Inventory", new { area = "Admin" }, new { @class = "btn btn-secondary" })
             </div>
         </form>
     </div>
@@ -67,7 +67,7 @@
 <div class="card m-3">
     <div class="card-header">
         <div class="d-flex justify-content-end">
-            @Html.Partial("_Paginator")
+            <partial name="_Paginator" />
         </div>
     </div>
 
@@ -103,9 +103,9 @@
                         <td>
                             <div class="hstack gap-2">
 
-                                @Html.ActionLink("View", "Details", new { controller = "Inventory", id = book.Id }, new { @class = "card-link" })                                
+                                @Html.ActionLink("View", "Details", "Inventory", new { area = "Admin", id = book.Id }, new { @class = "card-link" })                                
                                 <div class="vr"></div>                               
-                                @Html.ActionLink("Update", "Update", new { controller = "Inventory", id = book.Id }, new { @class = "card-link" })
+                                @Html.ActionLink("Update", "Update", "Inventory", new { area = "Admin", id = book.Id }, new { @class = "card-link" })
                             </div>
                         </td>
                     </tr>
@@ -116,7 +116,7 @@
 
     <div class="card-footer">
         <div class="d-flex justify-content-end">
-            @Html.Partial("_Paginator")
+            <partial name="_Paginator" />
         </div>
     </div>
 </div>

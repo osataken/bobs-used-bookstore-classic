@@ -3,7 +3,7 @@ using Bookstore.Domain.Customers;
 using Bookstore.Web.Helpers;
 using Bookstore.Web.ViewModel.Address;
 using System.Threading.Tasks;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bookstore.Web.Controllers
 {
@@ -54,7 +54,7 @@ namespace Bookstore.Web.Controllers
         [HttpPost]
         public async Task<ActionResult> Update(AddressCreateUpdateViewModel model)
         {
-            if (!ModelState.IsValid) return View(model);
+            if (!ModelState.IsValid) return View("CreateUpdate", model);
 
             var dto = new UpdateAddressDto(model.Id, model.AddressLine1, model.AddressLine2, model.City, model.State, model.Country, model.ZipCode, User.GetSub());
 

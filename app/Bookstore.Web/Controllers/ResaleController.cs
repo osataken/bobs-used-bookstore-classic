@@ -3,7 +3,7 @@ using Bookstore.Web.ViewModel.Resale;
 using Bookstore.Web.Helpers;
 using Bookstore.Domain.Offers;
 using Bookstore.Domain.ReferenceData;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bookstore.Web.Controllers
 {
@@ -35,7 +35,24 @@ namespace Bookstore.Web.Controllers
         [HttpPost]
         public async Task<ActionResult> Create(ResaleCreateViewModel resaleViewModel)
         {
-            if (!ModelState.IsValid) return View();
+            if (!ModelState.IsValid)
+            {
+                // The select lists are not round-tripped by model binding, so they have to be
+                // rehydrated before the Create view is re-displayed with the validation errors.
+                var referenceData = await referenceDataService.GetAllReferenceDataAsync();
+
+                return View(new ResaleCreateViewModel(referenceData)
+                {
+                    BookName = resaleViewModel.BookName,
+                    Author = resaleViewModel.Author,
+                    ISBN = resaleViewModel.ISBN,
+                    BookPrice = resaleViewModel.BookPrice,
+                    SelectedBookTypeId = resaleViewModel.SelectedBookTypeId,
+                    SelectedConditionId = resaleViewModel.SelectedConditionId,
+                    SelectedGenreId = resaleViewModel.SelectedGenreId,
+                    SelectedPublisherId = resaleViewModel.SelectedPublisherId
+                });
+            }
 
             var dto = new CreateOfferDto(
                 User.GetSub(), 
