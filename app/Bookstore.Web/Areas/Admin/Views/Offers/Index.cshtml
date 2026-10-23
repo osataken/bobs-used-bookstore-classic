@@ -10,7 +10,7 @@
     if (Model.Filters == null) { Model.Filters = new OfferFilters(); }
 }
 
-@Html.Partial("_MessageBanner")
+<partial name="_MessageBanner" />
 
 <div class="d-flex m-3">
     <h5 class="me-auto">Offers</h5>
@@ -57,7 +57,7 @@
 <div class="card m-3">
     <div class="card-header">
         <div class="d-flex justify-content-end">
-            @Html.Partial("_Paginator", Model)
+            <partial name="_Paginator" model="Model" />
         </div>
     </div>
 
@@ -127,7 +127,7 @@
 
     <div class="card-footer">
         <div class="d-flex justify-content-end">
-            @Html.Partial("_Paginator", Model)
+            <partial name="_Paginator" model="Model" />
         </div>
     </div>
 </div>
