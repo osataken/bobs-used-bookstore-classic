@@ -3,7 +3,12 @@
 
 @model Bookstore.Web.Areas.Admin.Models.Offers.OfferIndexViewModel
 
-@{ ViewData["Title"] = "Offers"; }
+@{
+    ViewData["Title"] = "Offers";
+    // Filters is never assigned by OffersController (same as the original MVC5 app);
+    // guard it so the filter editors bind against an empty filter instance.
+    if (Model.Filters == null) { Model.Filters = new OfferFilters(); }
+}
 
 @Html.Partial("_MessageBanner")
 
@@ -36,7 +41,7 @@
 
             <div class="col-12">
                 <label class="visually-hidden" for="OfferStatusSelect">Offer status</label>
-                @Html.EnumDropDownListFor(a => a.Filters.OfferStatus, "All Offer Statuses", new { @class = "form-select" })
+                @Html.DropDownListFor(a => a.Filters.OfferStatus, Html.GetEnumSelectList<OfferStatus>(), "All Offer Statuses", new { @class = "form-select" })
             </div>
             <div class="col-12">
                 <button type="submit" class="btn btn-primary">Filter</button>
