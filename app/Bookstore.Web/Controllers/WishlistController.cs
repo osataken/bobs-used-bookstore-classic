@@ -1,9 +1,12 @@
-﻿using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Authorization;
+using System.Threading.Tasks;
 using Bookstore.Web.Helpers;
 using Bookstore.Domain.Customers;
 using Bookstore.Domain.Carts;
+using Bookstore.Web.ViewModel;
 using Bookstore.Web.ViewModel.Wishlist;
-using System.Web.Mvc;
+using System.Diagnostics;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bookstore.Web.Controllers
 {
@@ -64,7 +67,9 @@ namespace Bookstore.Web.Controllers
 
         public ActionResult Error()
         {
-            return View();
+            // No Views/Wishlist/Error.cshtml exists, so this resolves to Views/Shared/Error.cshtml,
+            // which is strongly typed to ErrorViewModel and must therefore be given a model.
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id });
         }
     }
 }

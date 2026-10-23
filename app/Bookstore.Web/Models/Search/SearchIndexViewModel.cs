@@ -9,9 +9,9 @@ namespace Bookstore.Web.ViewModel.Search
 {
     public class SearchIndexViewModel : PaginatedViewModel
     {
-        public string SearchString { get; set; }
+        public string SearchString { get; set; } = "";
 
-        public string SortBy { get; set; }
+        public string SortBy { get; set; } = "Name";
 
         public List<SearchIndexItemViewModel> Books { get; set; } = new List<SearchIndexItemViewModel>();
 
