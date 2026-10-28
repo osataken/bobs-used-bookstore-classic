@@ -1,4 +1,5 @@
-﻿using Bookstore.Domain.Books;
+﻿#if NET10_0_OR_GREATER
+using Bookstore.Domain.Books;
 using Bookstore.Domain.ReferenceData;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -116,3 +117,4 @@ namespace Bookstore.Data
         }
     }
 }
+#endif

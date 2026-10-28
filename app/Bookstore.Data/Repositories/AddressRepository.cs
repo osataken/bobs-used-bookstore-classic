@@ -1,4 +1,5 @@
-﻿using Bookstore.Domain.Addresses;
+﻿#if NET10_0_OR_GREATER
+using Bookstore.Domain.Addresses;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -45,3 +46,4 @@ namespace Bookstore.Data.Repositories
         }
     }
 }
+#endif

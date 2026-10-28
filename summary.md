@@ -4,14 +4,14 @@
 
 **PASS — 0 Error(s), 0 Warning(s)**
 
-All 5 projects build cleanly against net10.0:
+All 5 projects build cleanly across all target frameworks:
 
-| Project | TFM | Errors | Warnings |
+| Project | TFM(s) | Errors | Warnings |
 |---|---|---|---|
-| Bookstore.Common | net10.0 | 0 | 0 |
+| Bookstore.Common | net10.0, netstandard2.0 | 0 | 0 |
 | Bookstore.Cdk | net10.0 | 0 | 0 |
-| Bookstore.Domain | net10.0 | 0 | 0 |
-| Bookstore.Data | net10.0 | 0 | 0 |
+| Bookstore.Domain | net10.0, netstandard2.0 | 0 | 0 |
+| Bookstore.Data | net10.0, netstandard2.0 | 0 | 0 |
 | Bookstore.Web | net10.0 | 0 | 0 |
 
 ## What this cycle did (fixes on top of ATX output)
@@ -55,6 +55,35 @@ new S3 buckets in regions that do not support OAI. The bucket policy is now mana
 the S3 bucket, HTTPS redirect, GET/HEAD/OPTIONS allowed) is preserved.
 
 Also removed the now-unused `using Amazon.CDK.AWS.IAM;` import from `CoreStack.cs`.
+
+### 4. Bookstore.Domain — `System.ComponentModel.DataAnnotations` for netstandard2.0
+
+The `[Timestamp]` attribute on `Entity.cs` uses `System.ComponentModel.DataAnnotations`, which is
+a built-in assembly on net10.0 but requires the `System.ComponentModel.Annotations` NuGet package
+on netstandard2.0. Added a conditional package reference:
+
+- `Bookstore.Domain/Bookstore.Domain.csproj`: added `System.ComponentModel.Annotations 5.0.0`
+  conditioned on `'$(TargetFramework)'=='netstandard2.0'`.
+
+### 5. Bookstore.Data — EF Core 10 incompatible with netstandard2.0 (NU1202)
+
+EF Core 10.x targets net10.0 only; it has never supported netstandard2.0. The AWS SDK packages
+and `Microsoft.Extensions.*` v6 are compatible with netstandard2.0.
+
+Fixes applied:
+- Split `PackageReference` items into three groups in `Bookstore.Data.csproj`:
+  - Unconditional: `AWSSDK.Rekognition`, `AWSSDK.S3`, `Magick.NET-Q8-AnyCPU`
+  - `net10.0`-only: all `Microsoft.EntityFrameworkCore.*` (10.0.13), `Microsoft.Extensions.Configuration.*` (10.0.13), `System.Security.Cryptography.Pkcs` (10.0.13)
+  - `netstandard2.0`-only: `Microsoft.Extensions.Configuration.Abstractions 6.0.0`, `Microsoft.Extensions.Configuration.Binder 6.0.0`
+- Added `#if NET10_0_OR_GREATER` / `#endif` guards around all EF Core-dependent source files:
+  - `ApplicationDbContext.cs`, `BookstoreDbInitializer.cs`, `PaginatedList.cs`
+  - All seven repository files under `Repositories/`
+- Non-EF-Core files (`BookstoreConfiguration.cs`, `FileServices/`, `ImageResizeService/`,
+  `ImageValidationServices/`) compile on both TFMs unchanged.
+
+The netstandard2.0 leg of Bookstore.Data provides `BookstoreConfiguration`, file services,
+and image services for .NET Framework callers. The EF Core data-access classes are only
+compiled into the net10.0 output.
 
 ## Next steps
 
