@@ -4,14 +4,14 @@
 
 **PASS — 0 Error(s), 0 Warning(s)**
 
-All 5 projects build cleanly against net10.0:
+All 5 projects build cleanly (net10.0 and their netstandard2.0 legs where applicable):
 
-| Project | TFM | Errors | Warnings |
+| Project | TFMs | Errors | Warnings |
 |---|---|---|---|
-| Bookstore.Common | net10.0 | 0 | 0 |
+| Bookstore.Common | net10.0; netstandard2.0 | 0 | 0 |
 | Bookstore.Cdk | net10.0 | 0 | 0 |
-| Bookstore.Domain | net10.0 | 0 | 0 |
-| Bookstore.Data | net10.0 | 0 | 0 |
+| Bookstore.Domain | net10.0; netstandard2.0 | 0 | 0 |
+| Bookstore.Data | net10.0; netstandard2.0 | 0 | 0 |
 | Bookstore.Web | net10.0 | 0 | 0 |
 
 ## What this cycle did (fixes on top of ATX output)
@@ -56,6 +56,45 @@ the S3 bucket, HTTPS redirect, GET/HEAD/OPTIONS allowed) is preserved.
 
 Also removed the now-unused `using Amazon.CDK.AWS.IAM;` import from `CoreStack.cs`.
 
+### 4. Bookstore.Domain — netstandard2.0 leg: missing System.ComponentModel.DataAnnotations
+
+The `netstandard2.0` compile of `Bookstore.Domain` failed with CS0234/CS0246 because
+`System.ComponentModel.DataAnnotations` (and `[Timestamp]`) is not in-box for netstandard2.0.
+Fixed by adding a conditional PackageReference:
+
+```xml
+<ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+  <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+</ItemGroup>
+```
+
+### 5. Bookstore.Data — EF Core 10 is net10.0-only (NU1202)
+
+EF Core 10.x packages (`Microsoft.EntityFrameworkCore`, `.Relational`, `.SqlServer` at 10.0.13)
+only support `net10.0` — they emit NU1202 for the `netstandard2.0` leg.
+`Microsoft.Extensions.Configuration.Abstractions/Binder` 10.0.13 also required alignment.
+
+Resolution: split all package references into conditional `ItemGroup` blocks per TFM,
+and guard every file that uses EF Core with `#if NET10_0_OR_GREATER`:
+
+- **`Bookstore.Data.csproj`**: EF Core + Pkcs packages → `net10.0` only;
+  Config Abstractions/Binder → 10.0.13 for `net10.0`, 8.0.x for `netstandard2.0`.
+- **`ApplicationDbContext.cs`**: wrapped in `#if NET10_0_OR_GREATER`.
+- **`BookstoreDbInitializer.cs`**: wrapped in `#if NET10_0_OR_GREATER`.
+- **`PaginatedList.cs`**: EF Core-dependent members guarded; a no-op `PopulateAsync`
+  stub provided for `netstandard2.0`.
+- **All Repositories** (`Book`, `Order`, `Offer`, `Address`, `Customer`, `ShoppingCart`,
+  `ReferenceData`): each wrapped in `#if NET10_0_OR_GREATER`.
+
+The `netstandard2.0` target compiles cleanly (no EF Core types referenced) while the
+`net10.0` target retains full data-access functionality.
+
+### 6. BookstoreDbInitializer — EF1002 warning suppressed
+
+`ExecuteSqlRaw` with an interpolated table name (always a hardcoded constant, never user
+input) raised EF1002. Wrapped the two call sites in `#pragma warning disable/restore EF1002`
+with a comment documenting why the raw call is safe.
+
 ## Next steps
 
 None blocking. All exit criteria are met.
@@ -64,3 +103,7 @@ None blocking. All exit criteria are met.
   deployed with an OAI-based bucket policy, a `cdk deploy` will replace the OAI with an OAC and
   update the bucket resource policy. This is a non-destructive, same-functionality change but
   should be reviewed before deploying to an existing environment.
+- The `netstandard2.0` TFM in `Bookstore.Data` produces a dll where all EF Core types are excluded
+  (no DbContext, no repositories). Any future .NET Framework caller would need its own data access
+  implementation. If the netstandard2.0 target is no longer needed, the `<TargetFrameworks>` can
+  be collapsed to `<TargetFramework>net10.0</TargetFramework>` in a subsequent cycle.

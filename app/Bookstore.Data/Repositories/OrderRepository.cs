@@ -1,4 +1,5 @@
-﻿using Bookstore.Domain;
+#if NET10_0_OR_GREATER
+using Bookstore.Domain;
 using Bookstore.Domain.Books;
 using Bookstore.Domain.Orders;
 using System;
@@ -110,3 +111,4 @@ namespace Bookstore.Data.Repositories
         }
     }
 }
+#endif

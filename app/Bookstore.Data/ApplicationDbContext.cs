@@ -1,4 +1,5 @@
-﻿using Bookstore.Domain.Addresses;
+#if NET10_0_OR_GREATER
+using Bookstore.Domain.Addresses;
 using Bookstore.Domain.Books;
 using Bookstore.Domain.Carts;
 using Bookstore.Domain.Customers;
@@ -74,3 +75,4 @@ namespace Bookstore.Data
         }
     }
 }
+#endif

@@ -1,16 +1,20 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
+#if NET10_0_OR_GREATER
+using Microsoft.EntityFrameworkCore;
+#endif
 
 namespace Bookstore.Domain
 {
     public class PaginatedList<T> : List<T>, IPaginatedList<T> where T : Entity
     {
+#if NET10_0_OR_GREATER
         private readonly IQueryable<T> source;
         private readonly int pageIndex;
         private readonly int pageSize;
+#endif
 
         public int PageIndex { get; private set; }
 
@@ -18,6 +22,7 @@ namespace Bookstore.Domain
 
         private PaginatedList(){ }
 
+#if NET10_0_OR_GREATER
         public PaginatedList(IQueryable<T> source, int pageIndex, int pageSize) 
         {
             this.source = source;
@@ -36,6 +41,9 @@ namespace Bookstore.Domain
 
             AddRange(items);
         }
+#else
+        public Task PopulateAsync() => Task.CompletedTask;
+#endif
 
         public bool HasPreviousPage => PageIndex > 1;
 
