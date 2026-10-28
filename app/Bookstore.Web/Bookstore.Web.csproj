@@ -27,6 +27,8 @@
     <PackageReference Include="AWSSDK.Rekognition" Version="3.7.400.129" />
     <PackageReference Include="AWSSDK.S3" Version="3.7.416.5" />
     <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.404.10" />
+    <!-- Pin to fix transitive vulnerability via Microsoft.Data.SqlClient -> System.Security.Cryptography.Pkcs 9.0.4 -->
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>
