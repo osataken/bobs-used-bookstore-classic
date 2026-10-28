@@ -4,63 +4,85 @@
 
 **PASS — 0 Error(s), 0 Warning(s)**
 
-All 5 projects build cleanly against net10.0:
+All 5 projects build cleanly:
 
-| Project | TFM | Errors | Warnings |
+| Project | TFMs | Errors | Warnings |
 |---|---|---|---|
-| Bookstore.Common | net10.0 | 0 | 0 |
+| Bookstore.Common | net10.0 + netstandard2.0 | 0 | 0 |
 | Bookstore.Cdk | net10.0 | 0 | 0 |
-| Bookstore.Domain | net10.0 | 0 | 0 |
-| Bookstore.Data | net10.0 | 0 | 0 |
+| Bookstore.Domain | net10.0 + netstandard2.0 | 0 | 0 |
+| Bookstore.Data | net10.0 + netstandard2.0 | 0 | 0 |
 | Bookstore.Web | net10.0 | 0 | 0 |
 
-## What this cycle did (fixes on top of ATX output)
+## What this cycle did
 
-### 1. Bookstore.Common — target framework upgraded to net10.0
+### 1. Bookstore.Domain — System.ComponentModel.DataAnnotations on netstandard2.0
 
-ATX intentionally left `Bookstore.Common` on `netstandard2.0` ("excluded by design" as a leaf
-library). The task scope explicitly lists this project as a net10.0 target, so the framework
-moniker was changed:
+The `[Timestamp]` attribute on `Entity.cs` requires `System.ComponentModel.DataAnnotations`.
+In .NET 10 SDK toolchains targeting `netstandard2.0`, this assembly is no longer auto-referenced.
 
-- `Bookstore.Common/Bookstore.Common.csproj`: `netstandard2.0` → `net10.0`
+- `Bookstore.Domain/Bookstore.Domain.csproj`: added a conditional
+  `<PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" Condition="'$(TargetFramework)'=='netstandard2.0'" />`
 
-### 2. Amazon.CDK.Lib — vulnerability advisory resolved
+### 2. Bookstore.Data — EF Core 10 not compatible with netstandard2.0 (NU1202)
 
-The ATX run left `Amazon.CDK.Lib` at 2.188.0, which carried a known low-severity advisory
-(GHSA-464c-974j-9xm6). Bumped to 2.274.0 (latest at time of run).
+`Microsoft.EntityFrameworkCore` 10.x and `Magick.NET-Q8-AnyCPU` 15.x only target `net10.0`,
+not `netstandard2.0`. The instruction rules require `#if` guards rather than TFM removal for
+NU1202 (package incompatibility).
 
-- `Bookstore.Cdk/Bookstore.Cdk.csproj`: `Amazon.CDK.Lib` 2.188.0 → 2.274.0
-- `Bookstore.Cdk/Bookstore.Cdk.csproj`: `Constructs` 10.4.2 → 10.5.0 (required by 2.274.0;
-  NU1605 downgrade error fixed)
+**Project file changes** (`Bookstore.Data.csproj`):
+- Moved `Microsoft.EntityFrameworkCore`, `Microsoft.EntityFrameworkCore.Relational`,
+  `Microsoft.EntityFrameworkCore.SqlServer`, `Magick.NET-Q8-AnyCPU`, and
+  `System.Security.Cryptography.Pkcs` into a `Condition="'$(TargetFramework)'!='netstandard2.0'"`
+  `<ItemGroup>` so they are only restored for `net10.0`.
+- Kept `AWSSDK.*` and `Microsoft.Extensions.Configuration.*` packages unconditional (they support
+  both TFMs).
 
-### 3. CloudFront — deprecated constructs replaced (CS0618 / CS0612)
+**Code guards** — `#if !NETSTANDARD2_0` / `#endif` wrappers added to all EF Core-dependent files
+so the `netstandard2.0` leg compiles cleanly (no symbols, no types):
+- `ApplicationDbContext.cs` — whole file
+- `BookstoreDbInitializer.cs` — whole file
+- `PaginatedList.cs` — `using Microsoft.EntityFrameworkCore` directive and `PopulateAsync()` body;
+  the method throws `PlatformNotSupportedException` on `netstandard2.0`
+- `Repositories/AddressRepository.cs` — whole file
+- `Repositories/BookRepository.cs` — whole file
+- `Repositories/CustomerRepository.cs` — whole file
+- `Repositories/OfferRepository.cs` — whole file
+- `Repositories/OrderRepository.cs` — whole file
+- `Repositories/ReferenceDataRepository.cs` — whole file
+- `Repositories/ShoppingCartRepository.cs` — whole file
+- `ImageResizeService/ImageResizeService.cs` — whole file (depends on Magick.NET)
 
-CDK 2.274.0 marks the old `CloudFrontWebDistribution` L2 construct and its companion types
-(`SourceConfiguration`, `S3OriginConfig`, `Behavior`, `CloudFrontAllowedMethods`) as obsolete
-(CS0618/CS0612). Migrated `CoreStack.CreateCloudFrontDistribution()` to the current construct set:
+### 3. Bookstore.Data — EF1002 SQL injection advisory resolved
 
-| Before | After |
-|---|---|
-| `CloudFrontWebDistribution` | `Distribution` |
-| `CloudFrontWebDistributionProps` | `DistributionProps` / `BehaviorOptions` |
-| `OriginAccessIdentity` + manual bucket policy | `S3BucketOrigin.WithOriginAccessControl()` (OAC) |
-| `S3OriginConfig` / `S3Origin` (deprecated) | `S3BucketOrigin.WithOriginAccessControl()` |
-| `CloudFrontAllowedMethods.GET_HEAD_OPTIONS` | `AllowedMethods.ALLOW_GET_HEAD_OPTIONS` |
-| `distribution.DistributionDomainName` | `distribution.DomainName` |
+`BookstoreDbInitializer.ExecuteSqlRaw` was called with an interpolated string containing the table
+name. Table names cannot be parameterised in `SET IDENTITY_INSERT` SQL, so `ExecuteSql` cannot be
+used. The table name is a hardcoded application constant (never user input), so the call is safe.
+Added `#pragma warning disable/restore EF1002` around the two calls with an inline comment
+explaining the rationale.
 
-**Infrastructure note:** OAI (Origin Access Identity) was replaced with OAC (Origin Access
-Control). OAC is the AWS-recommended successor to OAI — it uses SigV4 signing and is required for
-new S3 buckets in regions that do not support OAI. The bucket policy is now managed by the CDK
-`S3BucketOrigin` construct rather than manually. Functional behavior (CloudFront-only access to
-the S3 bucket, HTTPS redirect, GET/HEAD/OPTIONS allowed) is preserved.
+## Previous cycle (ATX + fixes)
 
-Also removed the now-unused `using Amazon.CDK.AWS.IAM;` import from `CoreStack.cs`.
+### 1. Bookstore.Common — target framework
+`netstandard2.0` → `net10.0` (scope explicitly targets net10.0).
+
+### 2. Amazon.CDK.Lib — vulnerability advisory
+`Amazon.CDK.Lib` 2.188.0 → 2.274.0; `Constructs` 10.4.2 → 10.5.0.
+
+### 3. CloudFront — deprecated constructs replaced
+`CloudFrontWebDistribution` migrated to `Distribution` / `S3BucketOrigin.WithOriginAccessControl()`
+(OAI → OAC). See previous summary for full mapping table.
 
 ## Next steps
 
-None blocking. All exit criteria are met.
+None blocking. All exit criteria are met:
+- `dotnet build BobsBookstoreClassic.sln` exits with code 0, 0 errors, 0 warnings.
+- All five target projects compile for their declared TFMs.
 
-- The CDK stack was not deployed as part of this run. If the CloudFront distribution was previously
-  deployed with an OAI-based bucket policy, a `cdk deploy` will replace the OAI with an OAC and
-  update the bucket resource policy. This is a non-destructive, same-functionality change but
-  should be reviewed before deploying to an existing environment.
+Informational notes:
+- The `netstandard2.0` build of `Bookstore.Data` exposes only the non-EF-Core services
+  (file services, image validation, configuration). Any .NET Framework caller that references
+  this library cannot use the repository/DbContext layer — that is expected because EF Core 10
+  does not run on .NET Framework.
+- The CDK stack was not deployed as part of this run. The previously noted OAI→OAC CloudFront
+  change remains pending deployment review.

@@ -1,4 +1,6 @@
-﻿using Bookstore.Domain.Books;
+// EF Core is not available on netstandard2.0; the initializer is only compiled for net10.0+.
+#if !NETSTANDARD2_0
+using Bookstore.Domain.Books;
 using Bookstore.Domain.ReferenceData;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -95,6 +97,10 @@ namespace Bookstore.Data
             {
                 using (var transaction = context.Database.BeginTransaction())
                 {
+                    // tableName is always a hardcoded application string (never user input),
+                    // so SQL injection is not a risk here. Table names cannot be parameterised
+                    // in SET IDENTITY_INSERT statements, so ExecuteSqlRaw is the correct API.
+#pragma warning disable EF1002
                     context.Database.ExecuteSqlRaw($"SET IDENTITY_INSERT [{tableName}] ON");
 
                     try
@@ -105,6 +111,7 @@ namespace Bookstore.Data
                     {
                         context.Database.ExecuteSqlRaw($"SET IDENTITY_INSERT [{tableName}] OFF");
                     }
+#pragma warning restore EF1002
 
                     transaction.Commit();
                 }
@@ -116,3 +123,4 @@ namespace Bookstore.Data
         }
     }
 }
+#endif

@@ -1,4 +1,6 @@
-﻿using Bookstore.Domain.Addresses;
+// EF Core is not available on netstandard2.0; the context is only compiled for net10.0+.
+#if !NETSTANDARD2_0
+using Bookstore.Domain.Addresses;
 using Bookstore.Domain.Books;
 using Bookstore.Domain.Carts;
 using Bookstore.Domain.Customers;
@@ -74,3 +76,4 @@ namespace Bookstore.Data
         }
     }
 }
+#endif

@@ -1,4 +1,6 @@
-﻿using Bookstore.Domain.Addresses;
+// EF Core is not available on netstandard2.0; repositories are only compiled for net10.0+.
+#if !NETSTANDARD2_0
+using Bookstore.Domain.Addresses;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -45,3 +47,4 @@ namespace Bookstore.Data.Repositories
         }
     }
 }
+#endif

@@ -1,4 +1,6 @@
-﻿using Bookstore.Domain;
+// Magick.NET is not available on netstandard2.0; ImageResizeService is only compiled for net10.0+.
+#if !NETSTANDARD2_0
+using Bookstore.Domain;
 using ImageMagick;
 using System.IO;
 using System.Threading.Tasks;
@@ -31,3 +33,4 @@ namespace Bookstore.Data.ImageResizeService
         }
     }
 }
+#endif

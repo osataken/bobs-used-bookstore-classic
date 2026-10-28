@@ -1,7 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <RootNamespace>Bookstore.Domain</RootNamespace>
     <AssemblyName>Bookstore.Domain</AssemblyName>
     <ImplicitUsings>disable</ImplicitUsings>
@@ -10,5 +11,11 @@
     <Company>Organization</Company>
     <Copyright>Copyright © Organization 2023</Copyright>
   </PropertyGroup>
+
+  <!-- System.ComponentModel.DataAnnotations is not auto-referenced on netstandard2.0 in
+       newer SDK toolchains; add the package explicitly so [Timestamp] compiles. -->
+  <ItemGroup Condition="'$(TargetFramework)'=='netstandard2.0'">
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+  </ItemGroup>
 
 </Project>

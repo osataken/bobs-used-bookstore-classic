@@ -1,4 +1,6 @@
-﻿using Amazon.Auth.AccessControlPolicy;
+// EF Core is not available on netstandard2.0; repositories are only compiled for net10.0+.
+#if !NETSTANDARD2_0
+using Amazon.Auth.AccessControlPolicy;
 using Bookstore.Domain;
 using Bookstore.Domain.Offers;
 using Bookstore.Domain.Orders;
@@ -102,3 +104,4 @@ namespace Bookstore.Data.Repositories
         }
     }
 }
+#endif

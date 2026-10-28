@@ -1,6 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
+#if !NETSTANDARD2_0
 using Microsoft.EntityFrameworkCore;
+#endif
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -27,6 +29,7 @@ namespace Bookstore.Domain
 
         public async Task PopulateAsync()
         {
+#if !NETSTANDARD2_0
             var count = await source.CountAsync();
             var items = await source.OrderBy(x => x.Id).Skip((pageIndex - 1) * pageSize).Take(pageSize).ToListAsync();
 
@@ -35,6 +38,10 @@ namespace Bookstore.Domain
             TotalPages = (int)Math.Ceiling(count / (double)pageSize);
 
             AddRange(items);
+#else
+            await Task.CompletedTask;
+            throw new PlatformNotSupportedException("PaginatedList.PopulateAsync requires net10.0 or later (EF Core is not available on netstandard2.0).");
+#endif
         }
 
         public bool HasPreviousPage => PageIndex > 1;
