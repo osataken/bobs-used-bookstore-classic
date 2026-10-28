@@ -64,8 +64,8 @@
 
             <div class="row">
                 <div class="col">
-                    @Html.ActionLink("Add to cart", "AddItemToShoppingCart", new { bookid = @Model.BookId }, new { @class = "btn" })
-                    @Html.ActionLink("Add to wishlist", "AddItemToWishlist", new { bookid = @Model.BookId }, new { @class = "btn" })
+                    @Html.ActionLink("Add to cart", "AddItemToShoppingCart", "Search", new { bookid = @Model.BookId }, new { @class = "btn" })
+                    @Html.ActionLink("Add to wishlist", "AddItemToWishlist", "Search", new { bookid = @Model.BookId }, new { @class = "btn" })
                 </div>
             </div>
         </div>
