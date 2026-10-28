@@ -108,8 +108,16 @@ namespace Bookstore.Domain.Books
             return await SaveAsync(book, dto.CoverImage, dto.CoverImageFileName);
         }
 
-        private async Task<BookResult> SaveAsync(Book book, Stream coverImage, string coverImageFileName)
+        private async Task<BookResult> SaveAsync(Book book, Stream? coverImage, string coverImageFileName)
         {
+            // No cover image supplied: persist the book as-is, leaving any existing image untouched.
+            if (coverImage == null)
+            {
+                await bookRepository.SaveChangesAsync();
+
+                return new BookResult(true, null);
+            }
+
             var resizedCoverImage = await ResizeImageAsync(coverImage);
 
             var imageIsSafe = await imageValidationService.IsSafeAsync(coverImage);
@@ -125,8 +133,6 @@ namespace Bookstore.Domain.Books
 
         private async Task<Stream> ResizeImageAsync(Stream coverImage)
         {
-            if (coverImage == null) return null;
-
             return await imageResizeService.ResizeImageAsync(coverImage);
         }
 
@@ -134,11 +140,12 @@ namespace Bookstore.Domain.Books
         {
             var imageUrl = await fileService.SaveAsync(coverImage, coverImageFilename);
 
-            if (coverImage != null)
+            if (book.CoverImageUrl != null)
             {
                 await fileService.DeleteAsync(book.CoverImageUrl);
-                book.CoverImageUrl = imageUrl;
             }
+
+            book.CoverImageUrl = imageUrl;
         }
     }
 }

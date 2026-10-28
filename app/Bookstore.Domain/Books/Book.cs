@@ -7,7 +7,10 @@ namespace Bookstore.Domain.Books
     {
         public const int LowBookThreshold = 5;
 
+        // An empty constructor is required by EF Core
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
         protected Book() { }
+#pragma warning restore CS8618
 
         public Book(
             string name, 
@@ -20,8 +23,8 @@ namespace Bookstore.Domain.Books
             decimal price,
             int quantity, 
             int? year = null,
-            string summary = null,
-            string coverImageUrl = null)
+            string? summary = null,
+            string? coverImageUrl = null)
         {
             Name = name;
             Author = author;
@@ -37,29 +40,29 @@ namespace Bookstore.Domain.Books
             CoverImageUrl = coverImageUrl;
         }
 
-        public string Name { get; set; }
+        public string Name { get; set; } = null!;
 
-        public string Author { get; set; }
+        public string Author { get; set; } = null!;
 
         public int? Year { get; set; }
 
-        public string ISBN { get; set; }
+        public string ISBN { get; set; } = null!;
 
-        public ReferenceDataItem Publisher { get; set; }
+        public ReferenceDataItem Publisher { get; set; } = null!;
         public int PublisherId { get; set; }
 
-        public ReferenceDataItem BookType { get; set; }
+        public ReferenceDataItem BookType { get; set; } = null!;
         public int BookTypeId { get; set; }
 
-        public ReferenceDataItem Genre { get; set; }
+        public ReferenceDataItem Genre { get; set; } = null!;
         public int GenreId { get; set; }
 
-        public ReferenceDataItem Condition { get; set; }
+        public ReferenceDataItem Condition { get; set; } = null!;
         public int ConditionId { get; set; }
 
-        public string CoverImageUrl { get; set; }
+        public string? CoverImageUrl { get; set; }
 
-        public string Summary { get; set; }
+        public string? Summary { get; set; }
 
         public decimal Price { get; set; }
 

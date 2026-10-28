@@ -5,7 +5,10 @@ namespace Bookstore.Domain.Offers
 {
     public class Offer : Entity
     {
+        // An empty constructor is required by EF Core
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
         protected Offer() { }
+#pragma warning restore CS8618
 
         public Offer(
             int customerId,
@@ -29,33 +32,33 @@ namespace Bookstore.Domain.Offers
             BookPrice = bookPrice;
         }
 
-        public string Author { get; set; }
+        public string Author { get; set; } = null!;
 
-        public string ISBN { get; set; }
+        public string ISBN { get; set; } = null!;
 
-        public string BookName { get; set; }
+        public string BookName { get; set; } = null!;
 
-        public string FrontUrl { get; set; }
+        public string? FrontUrl { get; set; }
 
-        public ReferenceDataItem Genre { get; set; }
+        public ReferenceDataItem Genre { get; set; } = null!;
         public int GenreId { get; set; }
 
-        public ReferenceDataItem Condition { get; set; }
+        public ReferenceDataItem Condition { get; set; } = null!;
         public int ConditionId { get; set; }
 
-        public ReferenceDataItem Publisher { get; set; }
+        public ReferenceDataItem Publisher { get; set; } = null!;
         public int PublisherId { get; set; }
 
-        public ReferenceDataItem BookType { get; set; }
+        public ReferenceDataItem BookType { get; set; } = null!;
         public int BookTypeId { get; set; }
 
-        public string Summary { get; set; }
+        public string? Summary { get; set; }
 
         public OfferStatus OfferStatus { get; set; } = OfferStatus.PendingApproval;
 
-        public string Comment { get; set; }
+        public string? Comment { get; set; }
 
-        public Customer Customer { get; set; }
+        public Customer Customer { get; set; } = null!;
         public int CustomerId { get; set; }
 
         public decimal BookPrice { get; set; }

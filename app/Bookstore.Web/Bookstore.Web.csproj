@@ -16,10 +16,10 @@
   <ItemGroup>
     <PackageReference Include="Autofac" Version="8.2.1" />
     <PackageReference Include="Autofac.Extensions.DependencyInjection" Version="10.0.0" />
-    <PackageReference Include="AWSSDK.S3" Version="3.7.416.5" />
-    <PackageReference Include="AWSSDK.Rekognition" Version="3.7.400.129" />
-    <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.404.10" />
-    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.400" />
+    <PackageReference Include="AWSSDK.S3" Version="3.7.511.8" />
+    <PackageReference Include="AWSSDK.Rekognition" Version="3.7.502.58" />
+    <PackageReference Include="AWSSDK.SimpleSystemsManagement" Version="3.7.505.15" />
+    <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.7.400.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.13" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="10.0.13" />
     <PackageReference Include="NLog.Web.AspNetCore" Version="5.5.0" />

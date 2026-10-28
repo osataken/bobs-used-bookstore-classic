@@ -9,7 +9,10 @@ namespace Bookstore.Domain.Orders
 {
     public class Order : Entity
     {
+        // An empty constructor is required by EF Core
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
         protected Order() { }
+#pragma warning restore CS8618
 
         public Order(int customerId, int addressId)
         {
@@ -20,10 +23,10 @@ namespace Bookstore.Domain.Orders
         private readonly List<OrderItem> orderItems = new List<OrderItem>();
 
         public int CustomerId { get; set; }
-        public Customer Customer { get; set; }
+        public Customer Customer { get; set; } = null!;
 
         public int AddressId { get; set; }
-        public Address Address { get; set; }
+        public Address Address { get; set; } = null!;
 
         public ICollection<OrderItem> OrderItems => orderItems;
 

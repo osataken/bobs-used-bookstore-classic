@@ -5,11 +5,14 @@ namespace Bookstore.Domain.Carts
 {
     public class ShoppingCart : Entity
     {
+        // An empty constructor is required by EF Core
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
         protected ShoppingCart() { }
+#pragma warning restore CS8618
 
         public List<ShoppingCartItem> ShoppingCartItems { get; private set; } = new List<ShoppingCartItem>();
 
-        public string CorrelationId { get; set; }
+        public string CorrelationId { get; set; } = null!;
 
         public ShoppingCart(string correlationId)
         {

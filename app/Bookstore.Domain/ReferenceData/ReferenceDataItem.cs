@@ -3,7 +3,9 @@
     public class ReferenceDataItem : Entity
     {
         // An empty constructor is required by EF Core
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor.
         private ReferenceDataItem() { }
+#pragma warning restore CS8618
 
         public ReferenceDataItem(ReferenceDataType referenceDataType, string text)
         {
@@ -13,6 +15,6 @@
 
         public ReferenceDataType DataType { get; set; }
 
-        public string Text { get; set; }
+        public string Text { get; set; } = null!;
     }
 }
