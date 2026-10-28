@@ -1,44 +1,50 @@
 ﻿using System;
-using System.Web;
-using System.Web.Mvc;
+using System.Threading.Tasks;
 using BobsBookstoreClassic.Data;
+using Bookstore.Web.Helpers;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bookstore.Web.Controllers
 {
+    // Anonymous access is required: Program.cs installs a global FallbackPolicy requiring an
+    // authenticated user, and these endpoints run before/after sign-in.
+    [AllowAnonymous]
     public class AuthenticationController : Controller
     {
-        public ActionResult Login(string redirectUri = null)
+        public IActionResult Login(string redirectUri = null)
         {
-            if(string.IsNullOrWhiteSpace(redirectUri)) return RedirectToAction("Index", "Home");
+            if (string.IsNullOrWhiteSpace(redirectUri)) return RedirectToAction("Index", "Home");
 
             return Redirect(redirectUri);
         }
 
-        public ActionResult LogOut()
+        public Task<IActionResult> LogOut()
         {
-            return BookstoreConfiguration.GetSetting("Services/Authentication") == "aws" ? CognitoSignOut() : LocalSignOut();
+            return AuthenticationSetup.IsAwsAuthentication() ? CognitoSignOutAsync() : Task.FromResult(LocalSignOut());
         }
 
-        private ActionResult LocalSignOut()
+        private IActionResult LocalSignOut()
         {
-            if (HttpContext.Request.Cookies["LocalAuthentication"] != null)
+            if (Request.Cookies.ContainsKey(LocalAuthenticationMiddleware.CookieName))
             {
-                HttpContext.Response.Cookies.Add(new HttpCookie("LocalAuthentication") { Expires = DateTime.Now.AddDays(-1) });
+                // Core equivalent of writing an already-expired HttpCookie.
+                Response.Cookies.Delete(LocalAuthenticationMiddleware.CookieName);
             }
 
             return RedirectToAction("Index", "Home");
         }
 
-        private ActionResult CognitoSignOut()
+        private async Task<IActionResult> CognitoSignOutAsync()
         {
-            if (Request.Cookies[".AspNet.Cookies"] != null)
-            {
-                Response.Cookies.Add(new HttpCookie(".AspNet.Cookies") { Expires = DateTime.Now.AddDays(-1) });
-            }
+            // Replaces the manual expiry of the ".AspNet.Cookies" OWIN cookie.
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
 
             var domain = BookstoreConfiguration.GetSetting("Authentication/Cognito/CognitoDomain");
             var clientId = BookstoreConfiguration.GetSetting("Authentication/Cognito/LocalClientId");
-            var logoutUri = $"{Request.Url.Scheme}://{Request.Url.Host}:{Request.Url.Port}/";
+            var logoutUri = $"{Request.Scheme}://{Request.Host.Host}:{Request.Host.Port ?? (Request.IsHttps ? 443 : 80)}/";
 
             return Redirect($"{domain}/logout?client_id={clientId}&logout_uri={logoutUri}");
         }

@@ -3,7 +3,8 @@ using Bookstore.Web.ViewModel;
 using Bookstore.Domain.Books;
 using System.Threading.Tasks;
 using Bookstore.Web.ViewModel.Home;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
 namespace Bookstore.Web.Controllers
 {
@@ -17,29 +18,32 @@ namespace Bookstore.Web.Controllers
             this.bookService = bookService;
         }
 
-        public async Task<ActionResult> Index()
+        public async Task<IActionResult> Index()
         {
             var books = await bookService.ListBestSellingBooksAsync(4);
 
             return View(new HomeIndexViewModel(books));
         }
 
-        public ActionResult Privacy()
+        public IActionResult Privacy()
         {
             return View();
         }
 
-        public ActionResult Search()
+        public IActionResult Search()
         {
             return RedirectToAction("Index", "Search");
         }
 
-        public ActionResult Cart()
+        public IActionResult Cart()
         {
             return RedirectToAction("Index", "ShoppingCart");
         }
 
-        public ActionResult Error()
+        // Target of UseExceptionHandler("/Home/Error"); must stay anonymous so that an
+        // unauthenticated exception does not loop through the auth challenge.
+        [AllowAnonymous]
+        public IActionResult Error()
         {
             return View(new ErrorViewModel { RequestId = Activity.Current?.Id });
         }

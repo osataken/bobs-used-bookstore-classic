@@ -1,4 +1,4 @@
-﻿@model Bookstore.Web.ViewModel.Address.AddressIndexViewModel
+@model Bookstore.Web.ViewModel.Address.AddressIndexViewModel
 
 @{
     ViewData["Title"] = "Index";
@@ -98,19 +98,20 @@
         </div>
     </div>
 
-    @section Scripts {
-        <script type="text/javascript">
-            $(function () {
-
-                $('#confirmDeleteModal').on('show.bs.modal', function (event) {
-                    var modal = $(this);
-                    var formAction = modal.find('#confirmDeleteButton')[0].formAction;
-                    var addressId = $(event.relatedTarget).data('addressid');
-
-                    modal.find('#confirmDeleteButton').attr("formaction", formAction + "?id=" + addressId);
-                });
-
-            });
-        </script>
-    }
 </div>
+
+@section Scripts {
+    <script type="text/javascript">
+        $(function () {
+
+            $('#confirmDeleteModal').on('show.bs.modal', function (event) {
+                var modal = $(this);
+                var formAction = modal.find('#confirmDeleteButton')[0].formAction;
+                var addressId = $(event.relatedTarget).data('addressid');
+
+                modal.find('#confirmDeleteButton').attr("formaction", formAction + "?id=" + addressId);
+            });
+
+        });
+    </script>
+}
