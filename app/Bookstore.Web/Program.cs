@@ -110,7 +110,7 @@ namespace Bookstore.Web
             // hierarchy. Must be registered before the site-wide handler.
             app.UseWhen(
                 context => context.Request.Path.StartsWithSegments("/Admin"),
-                branch => branch.UseExceptionHandler("/Admin/Error/Index"));
+                branch => branch.UseExceptionHandler("/Error/Index"));
 
             app.UseExceptionHandler("/Home/Error");
             app.UseStatusCodePages();

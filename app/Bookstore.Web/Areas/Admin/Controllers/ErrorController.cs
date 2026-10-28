@@ -10,6 +10,7 @@ namespace Bookstore.Web.Areas.Admin.Controllers
         // Preserves the original MVC5 absolute route while keeping the conventional
         // area URL (/Admin/Error/Index) reachable.
         [Route("/Error/Index/{code:int}")]
+        [Route("/Error/Index")]
         [Route("/Admin/Error/Index")]
         public IActionResult Index(int code = 0)
         {
