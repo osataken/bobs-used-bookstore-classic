@@ -100,7 +100,7 @@
             <div class="mb-3">
 
                 <label class="form-label">Cover Image</label>                               
-                @Html.TextBoxFor(a => a.CoverImage, new { @class = "form-control mb-3", type = "file", accept = ".png,.jpg,.jpeg" })
+                <input class="form-control mb-3" type="file" accept=".png,.jpg,.jpeg" asp-for="CoverImage" />
                 @Html.ValidationMessageFor(a => a.CoverImage, null, new { @class="text=danger" })
                 
                 <img src="@Model.CoverImageUrl" class="img-thumbnail @(string.IsNullOrWhiteSpace(Model.CoverImageUrl) ? "d-none" : "")" />
@@ -138,5 +138,5 @@
         }
     </script>
 
-    @{Html.RenderPartial("_ValidationScriptsPartial");}
+    <partial name="_ValidationScriptsPartial" />
 }
