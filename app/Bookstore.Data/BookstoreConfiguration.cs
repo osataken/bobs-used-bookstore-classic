@@ -1,9 +1,14 @@
-﻿using System;
+﻿using Microsoft.Extensions.Configuration;
+using System;
 using System.Collections.Generic;
-using System.Configuration;
 
 namespace BobsBookstoreClassic.Data
 {
+    /// <summary>
+    /// Static settings façade used across the application. On .NET Framework this read directly from the
+    /// legacy framework configuration API; on modern .NET the host supplies an <see cref="IConfiguration"/>
+    /// by calling <see cref="Initialize(IConfiguration)"/> during startup, before any setting is read.
+    /// </summary>
     public sealed class BookstoreConfiguration
     {
         private static readonly Lazy<BookstoreConfiguration> Lazy = new Lazy<BookstoreConfiguration>(() => new BookstoreConfiguration());
@@ -13,22 +18,39 @@ namespace BobsBookstoreClassic.Data
         private readonly Dictionary<string, string> _appSettings = new Dictionary<string, string>();
         private readonly Dictionary<string, string> _connectionStrings = new Dictionary<string, string>();
 
-        private BookstoreConfiguration()
-        {
-            foreach (string key in ConfigurationManager.AppSettings)
-            {
-                _appSettings[key] = ConfigurationManager.AppSettings[key];
+        private BookstoreConfiguration() { }
 
-                if (Environment.GetEnvironmentVariable(key) != null)
-                {
-                    _appSettings[key] = Environment.GetEnvironmentVariable(key);
-                }
+        /// <summary>
+        /// Loads app settings and connection strings from the host configuration. Mirrors the original
+        /// behaviour: every setting may be overridden by an environment variable of the same name.
+        /// </summary>
+        public static void Initialize(IConfiguration configuration)
+        {
+            if (configuration == null) throw new ArgumentNullException(nameof(configuration));
+
+            var instance = Instance;
+
+            var appSettingsSection = configuration.GetSection("AppSettings");
+
+            // "AppSettings" keeps the web.config <appSettings> keys together when one exists; when it
+            // does not, the configuration root itself carries the keys.
+            var settingsSource = appSettingsSection.Exists() ? appSettingsSection : configuration;
+
+            foreach (var child in settingsSource.GetChildren())
+            {
+                if (string.Equals(child.Key, "ConnectionStrings", StringComparison.OrdinalIgnoreCase)) continue;
+                if (child.Value == null) continue;
+
+                var value = Environment.GetEnvironmentVariable(child.Key) ?? child.Value;
+
+                instance._appSettings[child.Key] = value;
             }
 
-            foreach (ConnectionStringSettings connectionStringSettings in ConfigurationManager.ConnectionStrings)
+            foreach (var connectionString in configuration.GetSection("ConnectionStrings").GetChildren())
             {
-                _connectionStrings[connectionStringSettings.Name] = connectionStringSettings.ConnectionString;
+                if (connectionString.Value == null) continue;
 
+                instance._connectionStrings[connectionString.Key] = connectionString.Value;
             }
         }
 
@@ -58,6 +80,5 @@ namespace BobsBookstoreClassic.Data
         {
             return Instance._connectionStrings[key];
         }
-
     }
 }
