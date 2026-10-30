@@ -1,4 +1,7 @@
-﻿using System;
+// EF Core 10.x only supports net10.0; CountAsync and ToListAsync are EF Core extension
+// methods, so the full implementation is excluded from the netstandard2.0 build.
+#if NET10_0_OR_GREATER
+using System;
 using System.Collections.Generic;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -79,3 +82,4 @@ namespace Bookstore.Domain
         }
     }
 }
+#endif

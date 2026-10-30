@@ -1,4 +1,5 @@
-﻿using Bookstore.Domain.Carts;
+#if NET10_0_OR_GREATER
+using Bookstore.Domain.Carts;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -33,3 +34,4 @@ namespace Bookstore.Data.Repositories
         }
     }
 }
+#endif

@@ -1,12 +1,19 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFrameworks>net10.0;netstandard2.0</TargetFrameworks>
+    <LangVersion>latest</LangVersion>
     <RootNamespace>Bookstore.Domain</RootNamespace>
     <AssemblyName>Bookstore.Domain</AssemblyName>
     <Company>Organization</Company>
     <Product>Bookstore.Domain</Product>
     <Copyright>Copyright © Organization 2023</Copyright>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- System.ComponentModel.DataAnnotations is part of netstandard2.0, but the reference assembly
+         in the .NET 10 SDK requires an explicit package reference to make the types available. -->
+    <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+  </ItemGroup>
 
 </Project>
