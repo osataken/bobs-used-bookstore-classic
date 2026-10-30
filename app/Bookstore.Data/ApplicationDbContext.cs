@@ -67,7 +67,7 @@ namespace Bookstore.Data
             modelBuilder.Entity<Offer>().HasOne(x => x.Genre).WithMany().HasForeignKey(x => x.GenreId).IsRequired().OnDelete(DeleteBehavior.Restrict);
             modelBuilder.Entity<Offer>().HasOne(x => x.Condition).WithMany().HasForeignKey(x => x.ConditionId).IsRequired().OnDelete(DeleteBehavior.Restrict);
 
-            modelBuilder.Entity<Order>().HasOne(x => x.Customer).WithMany().IsRequired().OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Order>().HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId).IsRequired().OnDelete(DeleteBehavior.Restrict);
 
             // Update the Reference Data Table to Match the modern version
             modelBuilder.Entity<ReferenceDataItem>().ToTable("ReferenceData");
