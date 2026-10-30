@@ -1,4 +1,7 @@
-﻿using Bookstore.Domain.Books;
+// EF Core 10.x only supports net10.0; the entire initializer is excluded from the
+// netstandard2.0 build so that .NET Framework callers can still reference this assembly.
+#if NET10_0_OR_GREATER
+using Bookstore.Domain.Books;
 using Bookstore.Domain.ReferenceData;
 using Microsoft.EntityFrameworkCore;
 using System.Threading;
@@ -98,3 +101,4 @@ namespace Bookstore.Data
         }
     }
 }
+#endif

@@ -1,4 +1,7 @@
-﻿using Bookstore.Domain.Addresses;
+// EF Core 10.x only supports net10.0; the entire DbContext is excluded from the
+// netstandard2.0 build so that .NET Framework callers can still reference this assembly.
+#if NET10_0_OR_GREATER
+using Bookstore.Domain.Addresses;
 using Bookstore.Domain.Books;
 using Bookstore.Domain.Carts;
 using Bookstore.Domain.Customers;
@@ -83,3 +86,4 @@ namespace Bookstore.Data
         }
     }
 }
+#endif

@@ -1,4 +1,5 @@
-﻿using Bookstore.Domain.Customers;
+#if NET10_0_OR_GREATER
+using Bookstore.Domain.Customers;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
 
@@ -34,3 +35,4 @@ namespace Bookstore.Data.Repositories
         }
     }
 }
+#endif

@@ -1,4 +1,5 @@
-﻿using Amazon.Auth.AccessControlPolicy;
+#if NET10_0_OR_GREATER
+using Amazon.Auth.AccessControlPolicy;
 using Bookstore.Domain;
 using Bookstore.Domain.Offers;
 using Bookstore.Domain.Orders;
@@ -102,3 +103,4 @@ namespace Bookstore.Data.Repositories
         }
     }
 }
+#endif
