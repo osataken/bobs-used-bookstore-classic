@@ -1,20 +1,22 @@
-FROM mcr.microsoft.com/dotnet/framework/sdk:4.8 AS build
+FROM --platform=linux/amd64 mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+COPY ["app/Bookstore.Common/Bookstore.Common.csproj", "app/Bookstore.Common/"]
+COPY ["app/Bookstore.Domain/Bookstore.Domain.csproj", "app/Bookstore.Domain/"]
+COPY ["app/Bookstore.Data/Bookstore.Data.csproj", "app/Bookstore.Data/"]
+COPY ["app/Bookstore.Web/Bookstore.Web.csproj", "app/Bookstore.Web/"]
+RUN dotnet restore "app/Bookstore.Web/Bookstore.Web.csproj" -a amd64
+
+COPY . .
+RUN dotnet publish "app/Bookstore.Web/Bookstore.Web.csproj" -c Release -o /app/publish -a amd64 --no-self-contained
+
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+ENV ASPNETCORE_HTTP_PORTS=8080
 
-COPY . ./
+COPY --from=build /app/publish .
 
-RUN nuget restore
-
-RUN msbuild app/Bookstore.Web/Bookstore.Web.csproj /p:DeployOnBuild=true /p:PublishProfile=FolderProfile.pubxml
-
-FROM mcr.microsoft.com/dotnet/framework/aspnet:4.8-windowsservercore-ltsc2019 AS runtime
-
-WORKDIR /LogMonitor
-RUN Invoke-WebRequest -Uri "https://github.com/microsoft/windows-container-tools/releases/download/v2.0.2/LogMonitor.exe" -OutFile "LogMonitor.exe"
-COPY LogMonitorConfig.json .
-
-WORKDIR /inetpub/wwwroot
-
-COPY --from=build /app/app/Bookstore.Web/obj/Docker/publish/ .
-
-ENTRYPOINT ["C:\\LogMonitor\\LogMonitor.exe", "C:\\ServiceMonitor.exe", "w3svc"]
+USER $APP_UID
+ENTRYPOINT ["dotnet", "Bookstore.Web.dll"]
