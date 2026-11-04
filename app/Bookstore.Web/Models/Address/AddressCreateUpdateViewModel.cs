@@ -1,6 +1,5 @@
-﻿using System.Collections;
 using System.Collections.Generic;
-using System.Web.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace Bookstore.Web.ViewModel.Address
 {
@@ -97,5 +96,4 @@ namespace Bookstore.Web.ViewModel.Address
             new SelectListItem { Value = "WY", Text = "Wyoming" }
         };
     }
-
 }

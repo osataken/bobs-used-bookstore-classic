@@ -17,17 +17,18 @@ namespace BobsBookstoreClassic.Data
         {
             foreach (string key in ConfigurationManager.AppSettings)
             {
-                _appSettings[key] = ConfigurationManager.AppSettings[key];
+                _appSettings[key] = ConfigurationManager.AppSettings[key] ?? string.Empty;
 
-                if (Environment.GetEnvironmentVariable(key) != null)
+                var envVar = Environment.GetEnvironmentVariable(key);
+                if (envVar != null)
                 {
-                    _appSettings[key] = Environment.GetEnvironmentVariable(key);
+                    _appSettings[key] = envVar;
                 }
             }
 
             foreach (ConnectionStringSettings connectionStringSettings in ConfigurationManager.ConnectionStrings)
             {
-                _connectionStrings[connectionStringSettings.Name] = connectionStringSettings.ConnectionString;
+                _connectionStrings[connectionStringSettings.Name] = connectionStringSettings.ConnectionString ?? string.Empty;
 
             }
         }

@@ -1,4 +1,4 @@
-﻿using Bookstore.Domain.Carts;
+using Bookstore.Domain.Carts;
 using Bookstore.Domain.Customers;
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ namespace Bookstore.Domain.Orders
 
         Task<IEnumerable<Order>> GetOrdersAsync(string sub);
 
-        Task<Order> GetOrderAsync(int id);
+        Task<Order?> GetOrderAsync(int id);
 
         Task<OrderStatistics> GetStatisticsAsync();
 
@@ -22,7 +22,6 @@ namespace Bookstore.Domain.Orders
         Task UpdateOrderStatusAsync(UpdateOrderStatusDto updateOrderStatusDto);
 
         Task CancelOrderAsync(CancelOrderDto cancelOrderDto);
-
     }
 
     public class OrderService : IOrderService
@@ -50,7 +49,7 @@ namespace Bookstore.Domain.Orders
             return await orderRepository.ListAsync(sub);
         }
 
-        public async Task<Order> GetOrderAsync(int id)
+        public async Task<Order?> GetOrderAsync(int id)
         {
             return await orderRepository.GetAsync(id);
         }
@@ -63,8 +62,9 @@ namespace Bookstore.Domain.Orders
         public async Task<int> CreateOrderAsync(CreateOrderDto dto)
         {
             var shoppingCart = await shoppingCartRepository.GetAsync(dto.CorrelationId);
-
             var customer = await customerRepository.GetAsync(dto.CustomerSub);
+
+            if (shoppingCart == null || customer == null) return 0;
 
             var order = new Order(customer.Id, dto.AddressId);
 
@@ -73,14 +73,12 @@ namespace Bookstore.Domain.Orders
             shoppingCart.GetShoppingCartItems(ShoppingCartItemFilter.ExcludeOutOfStockItems).ToList().ForEach(x =>
             {
                 order.AddOrderItem(x.Book, x.Quantity);
-
                 x.Book.ReduceStockLevel(x.Quantity);
-
                 shoppingCart.RemoveShoppingCartItemById(x.Id);
             });
 
             // Because each repository implements a unit of work, changes to the shopping cart and to stock levels 
-            // are captured by the unit of work and can be persisted by called SaveChangesAsync on _any_ repository.
+            // are captured by the unit of work and can be persisted by calling SaveChangesAsync on _any_ repository.
             await orderRepository.SaveChangesAsync();
 
             return order.Id;
@@ -89,9 +87,9 @@ namespace Bookstore.Domain.Orders
         public async Task UpdateOrderStatusAsync(UpdateOrderStatusDto dto)
         {
             var order = await orderRepository.GetAsync(dto.OrderId);
+            if (order == null) return;
 
             order.OrderStatus = dto.OrderStatus;
-
             order.UpdatedOn = DateTime.UtcNow;
 
             await orderRepository.SaveChangesAsync();

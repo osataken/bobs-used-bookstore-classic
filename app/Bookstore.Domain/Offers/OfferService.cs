@@ -1,4 +1,4 @@
-﻿using Bookstore.Domain.Customers;
+using Bookstore.Domain.Customers;
 using Bookstore.Domain.Orders;
 using System;
 using System.Collections.Generic;
@@ -12,7 +12,7 @@ namespace Bookstore.Domain.Offers
 
         Task<IEnumerable<Offer>> GetOffersAsync(string sub);
 
-        Task<Offer> GetOfferAsync(int offerId);
+        Task<Offer?> GetOfferAsync(int offerId);
 
         Task CreateOfferAsync(CreateOfferDto createOfferDto);
 
@@ -42,7 +42,7 @@ namespace Bookstore.Domain.Offers
             return await offerRepository.ListAsync(sub);
         }
 
-        public async Task<Offer> GetOfferAsync(int id)
+        public async Task<Offer?> GetOfferAsync(int id)
         {
             return await offerRepository.GetAsync(id);
         }
@@ -50,6 +50,7 @@ namespace Bookstore.Domain.Offers
         public async Task CreateOfferAsync(CreateOfferDto dto)
         {
             var customer = await customerRepository.GetAsync(dto.CustomerSub);
+            if (customer == null) return;
 
             var offer = new Offer(
                 customer.Id,
@@ -70,9 +71,9 @@ namespace Bookstore.Domain.Offers
         public async Task UpdateOfferStatusAsync(UpdateOfferStatusDto dto)
         {
             var offer = await GetOfferAsync(dto.OfferId);
+            if (offer == null) return;
 
             offer.OfferStatus = dto.Status;
-
             offer.UpdatedOn = DateTime.UtcNow;
 
             await offerRepository.SaveChangesAsync();
