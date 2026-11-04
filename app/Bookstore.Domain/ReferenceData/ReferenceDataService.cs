@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace Bookstore.Domain.ReferenceData
@@ -9,7 +9,7 @@ namespace Bookstore.Domain.ReferenceData
 
         Task<IEnumerable<ReferenceDataItem>> GetAllReferenceDataAsync();
 
-        Task<ReferenceDataItem> GetReferenceDataItemAsync(int id);
+        Task<ReferenceDataItem?> GetReferenceDataItemAsync(int id);
 
         Task CreateAsync(CreateReferenceDataItemDto createReferenceDataItemDto);
 
@@ -35,7 +35,7 @@ namespace Bookstore.Domain.ReferenceData
             return await referenceDataRepository.FullListAsync();
         }
 
-        public async Task<ReferenceDataItem> GetReferenceDataItemAsync(int id)
+        public async Task<ReferenceDataItem?> GetReferenceDataItemAsync(int id)
         {
             return await referenceDataRepository.GetAsync(id);
         }
@@ -52,6 +52,7 @@ namespace Bookstore.Domain.ReferenceData
         public async Task UpdateAsync(UpdateReferenceDataItemDto dto)
         {
             var referenceDataItem = await referenceDataRepository.GetAsync(dto.Id);
+            if (referenceDataItem == null) return;
 
             referenceDataItem.DataType = dto.ReferenceDataType;
             referenceDataItem.Text = dto.Text;

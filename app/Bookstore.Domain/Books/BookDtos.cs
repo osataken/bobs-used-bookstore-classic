@@ -1,23 +1,23 @@
-﻿using System.IO;
+using System.IO;
 
 namespace Bookstore.Domain.Books
 {
     public class CreateBookDto
     {
         public CreateBookDto(
-        string Name,
-        string Author,
-        int BookTypeId,
-        int ConditionId,
-        int GenreId,
-        int PublisherId,
-        int? Year,
-        string ISBN,
-        string Summary,
-        decimal Price,
-        int Quantity,
-        Stream CoverImage,
-        string CoverImageFileName)
+            string Name,
+            string Author,
+            int BookTypeId,
+            int ConditionId,
+            int GenreId,
+            int PublisherId,
+            int? Year,
+            string ISBN,
+            string? Summary,
+            decimal Price,
+            int Quantity,
+            Stream? CoverImage,
+            string? CoverImageFileName)
         {
             this.Name = Name;
             this.Author = Author;
@@ -42,30 +42,30 @@ namespace Bookstore.Domain.Books
         public int PublisherId { get; }
         public int? Year { get; }
         public string ISBN { get; }
-        public string Summary { get; }
+        public string? Summary { get; }
         public decimal Price { get; }
         public int Quantity { get; }
-        public Stream CoverImage { get; }
-        public string CoverImageFileName { get; }
+        public Stream? CoverImage { get; }
+        public string? CoverImageFileName { get; }
     }
 
     public class UpdateBookDto
     {
         public UpdateBookDto(
-        int BookId,
-        string Name,
-        string Author,
-        int BookTypeId,
-        int ConditionId,
-        int GenreId,
-        int PublisherId,
-        int? Year,
-        string ISBN,
-        string Summary,
-        decimal Price,
-        int Quantity,
-        Stream CoverImage,
-        string CoverImageFileName)
+            int BookId,
+            string Name,
+            string Author,
+            int BookTypeId,
+            int ConditionId,
+            int GenreId,
+            int PublisherId,
+            int? Year,
+            string ISBN,
+            string? Summary,
+            decimal Price,
+            int Quantity,
+            Stream? CoverImage,
+            string? CoverImageFileName)
         {
             this.BookId = BookId;
             this.Name = Name;
@@ -92,10 +92,10 @@ namespace Bookstore.Domain.Books
         public int PublisherId { get; }
         public int? Year { get; }
         public string ISBN { get; }
-        public string Summary { get; }
+        public string? Summary { get; }
         public decimal Price { get; }
         public int Quantity { get; }
-        public Stream CoverImage { get; }
-        public string CoverImageFileName { get; }
+        public Stream? CoverImage { get; }
+        public string? CoverImageFileName { get; }
     }
 }

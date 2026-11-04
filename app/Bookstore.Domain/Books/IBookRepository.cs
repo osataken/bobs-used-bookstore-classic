@@ -1,8 +1,8 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 
 namespace Bookstore.Domain.Books
 {
-    public  interface IBookRepository
+    public interface IBookRepository
     {
         Task<Book> GetAsync(int id);
 
@@ -16,6 +16,6 @@ namespace Bookstore.Domain.Books
 
         Task SaveChangesAsync();
 
-        Task<BookStatistics> GetStatisticsAsync();
+        Task<BookStatistics?> GetStatisticsAsync();
     }
 }

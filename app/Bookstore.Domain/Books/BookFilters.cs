@@ -1,10 +1,10 @@
-﻿namespace Bookstore.Domain.Books
+namespace Bookstore.Domain.Books
 {
     public class BookFilters
     {
-        public string Name { get; set; }
+        public string? Name { get; set; }
 
-        public string Author { get; set; }
+        public string? Author { get; set; }
 
         public int? PublisherId { get; set; }
 
