@@ -37,7 +37,7 @@ namespace Bookstore.Data.FileServices
 
                 await filestream.FlushAsync();
 
-                return $"/Content/images/coverimages/{uniqueFilename}";
+                return $"/images/coverimages/{uniqueFilename}";
             }
         }
     }

@@ -20,11 +20,13 @@ using Bookstore.Domain.ReferenceData;
 using Bookstore.Web.Helpers;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using NLog;
+using NLog.AWS.Logger;
+using NLog.Config;
 using NLog.Extensions.Logging;
 using System.Security.Claims;
 
@@ -34,6 +36,8 @@ var builder = WebApplication.CreateBuilder(args);
 LogManager.Setup().LoadConfigurationFromSection(builder.Configuration);
 builder.Logging.ClearProviders();
 builder.Logging.AddNLog();
+
+var startupLogger = LogManager.GetLogger("Startup");
 
 // ─── Bridge IConfiguration → BookstoreConfiguration ──────────────────────────
 // Populate the legacy BookstoreConfiguration from appsettings.json / env vars.
@@ -50,18 +54,44 @@ foreach (var cs in builder.Configuration.GetSection("ConnectionStrings").GetChil
 }
 
 // ─── Load AWS-managed configuration (SSM Parameter Store) ────────────────────
-LoadAwsConfiguration();
+LoadAwsConfiguration(startupLogger);
+
+// ─── CloudWatch logging target ────────────────────────────────────────────────
+// Ports App_Start/LoggingSetup.cs: when Services/LoggingService == "aws" the app
+// logged to a CloudWatch log group named after the application. The appsettings
+// "NLog" section only defines console/file targets, so the AWS target is added
+// programmatically after the section has been loaded. NLog "autoReload" is set
+// to false in appsettings.json: a reload would rebuild the configuration from
+// the section alone and silently drop this target.
+ConfigureAwsLoggingTarget();
 
 // ─── EF Core / Database ───────────────────────────────────────────────────────
 var connectionString = BookstoreConfiguration.GetConnectionString("BookstoreDatabaseConnection");
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
 
+// ─── Forwarded headers (ALB / reverse proxy TLS termination) ─────────────────
+// Without this the request scheme behind the ECS load balancer resolves to
+// "http", which breaks the Cognito redirect URI and any absolute URL building.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 // ─── MVC ──────────────────────────────────────────────────────────────────────
 builder.Services.AddControllersWithViews(options =>
 {
     // Global authorize filter - requires authentication for all controllers by default
+    // (ports the MVC5 global AuthorizeAttribute from App_Start/FilterConfig.cs).
     options.Filters.Add(new Microsoft.AspNetCore.Mvc.Authorization.AuthorizeFilter());
+
+    // MVC5 routed to the literal action method name, so URLs such as
+    // /Admin/Offers/ApproveAsync/{id} (used as formaction values in the Admin
+    // Offers view) must keep answering. ASP.NET Core trims the "Async" suffix
+    // by default, which would 404 those posts.
+    options.SuppressAsyncSuffixInActionNames = false;
 })
 .AddRazorRuntimeCompilation();
 
@@ -83,6 +113,7 @@ if (authService == "aws")
         options.UsePkce = true;
         options.Scope.Add("openid");
         options.Scope.Add("profile");
+        options.CallbackPath = HttpRequestExtensions.OidcCallbackPath;
         options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
         options.UseTokenLifetime = false;
         options.SaveTokens = true;
@@ -93,22 +124,40 @@ if (authService == "aws")
         };
         options.Events = new OpenIdConnectEvents
         {
+            // The OWIN implementation set the redirect URI on BOTH the authorize
+            // request and the token request; Cognito rejects the code exchange if
+            // the two do not match exactly.
             OnRedirectToIdentityProvider = context =>
             {
-                context.ProtocolMessage.RedirectUri = $"{context.Request.Scheme}://{context.Request.Host}/signin-oidc";
+                context.ProtocolMessage.RedirectUri = context.Request.GetReturnUrl();
+
+                return Task.CompletedTask;
+            },
+            OnAuthorizationCodeReceived = context =>
+            {
+                var returnUrl = context.Request.GetReturnUrl();
+
+                context.TokenEndpointRequest.RedirectUri = returnUrl;
+                context.Properties.RedirectUri ??= returnUrl;
+
                 return Task.CompletedTask;
             },
             OnTokenValidated = async context =>
             {
                 var service = context.HttpContext.RequestServices.GetRequiredService<ICustomerService>();
-                var identity = context.Principal?.Identity as ClaimsIdentity;
-                if (identity != null)
+
+                if (context.Principal?.Identity is ClaimsIdentity identity)
                 {
+                    // Make the validated principal available for the remainder of
+                    // this request, as the OWIN handler did via Request.User.
+                    context.HttpContext.User = context.Principal;
+
                     var dto = new CreateOrUpdateCustomerDto(
                         identity.GetSub(),
                         identity.Name ?? string.Empty,
                         identity.FindFirst(c => c.Type.Contains("givenname"))?.Value ?? string.Empty,
                         identity.FindFirst(c => c.Type.Contains("surname"))?.Value ?? string.Empty);
+
                     await service.CreateOrUpdateCustomerAsync(dto);
                 }
             }
@@ -151,10 +200,12 @@ if (BookstoreConfiguration.GetSetting("Services/FileService") == "aws")
 }
 else
 {
+    // Uploads must land under the served static-file root so that the URL
+    // LocalFileService returns ("/images/coverimages/...") actually resolves.
     builder.Services.AddSingleton<IFileService>(sp =>
     {
         var env = sp.GetRequiredService<IWebHostEnvironment>();
-        return new LocalFileService(env.ContentRootPath);
+        return new LocalFileService(env.WebRootPath);
     });
 }
 
@@ -179,6 +230,11 @@ builder.Services.AddHttpContextAccessor();
 // ─── Build app ────────────────────────────────────────────────────────────────
 var app = builder.Build();
 
+// ─── Ensure writable static content directories exist ────────────────────────
+// LocalFileService writes cover images here and the files are served from the
+// same path; the directory does not exist in a fresh container.
+Directory.CreateDirectory(Path.Combine(app.Environment.WebRootPath, "images", "coverimages"));
+
 // ─── Seed database ────────────────────────────────────────────────────────────
 using (var scope = app.Services.CreateScope())
 {
@@ -195,6 +251,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ─── Middleware pipeline ──────────────────────────────────────────────────────
+// Forwarded headers must run first so every later component (OIDC redirect
+// building, cookie Secure policy, URL generation) sees the external scheme.
+app.UseForwardedHeaders();
+
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -202,22 +262,12 @@ if (!app.Environment.IsDevelopment())
 
 app.UseStaticFiles();
 
-// Serve legacy Content/ and Scripts/ folders from their original paths
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(Path.Combine(app.Environment.ContentRootPath, "Content")),
-    RequestPath = "/Content"
-});
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(Path.Combine(app.Environment.ContentRootPath, "Scripts")),
-    RequestPath = "/Scripts"
-});
-
 app.UseRouting();
 
 if (authService != "aws")
 {
+    // Populates HttpContext.User for local development; must run before
+    // UseAuthorization so [Authorize]/[Authorize(Roles = ...)] sees the user.
     app.UseMiddleware<LocalAuthenticationMiddleware>();
 }
 
@@ -239,7 +289,21 @@ app.MapControllerRoute(
 app.Run();
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-static void LoadAwsConfiguration()
+static void ConfigureAwsLoggingTarget()
+{
+    if (BookstoreConfiguration.GetSetting("Services/LoggingService") != "aws") return;
+
+    var config = LogManager.Configuration ?? new LoggingConfiguration();
+
+    var awsTarget = new AWSTarget { Name = "aws", LogGroup = Constants.AppName };
+
+    config.AddTarget(awsTarget);
+    config.LoggingRules.Add(new LoggingRule("*", NLog.LogLevel.Info, awsTarget));
+
+    LogManager.Configuration = config;
+}
+
+static void LoadAwsConfiguration(Logger logger)
 {
     var rootPath = "/" + Constants.AppName;
     const string databasePath = "/Database";
@@ -255,7 +319,13 @@ static void LoadAwsConfiguration()
             var response = client.GetParameterAsync(request).GetAwaiter().GetResult();
             BookstoreConfiguration.AddSetting(response.Parameter.Name.Replace($"{rootPath}{databasePath}/", string.Empty), response.Parameter.Value);
         }
-        catch { /* ignore - may not have SSM access in dev */ }
+        catch (Exception ex)
+        {
+            // The MVC5 implementation let this propagate and fail startup. Swallowing it
+            // would leave the app running against the local placeholder connection string.
+            logger.Error(ex, "Unable to load the database configuration from SSM Parameter Store path {0}{1}.", rootPath, databasePath);
+            throw;
+        }
     }
 
     if (BookstoreConfiguration.GetSetting("Services/Authentication") == "aws")
@@ -270,7 +340,11 @@ static void LoadAwsConfiguration()
                 BookstoreConfiguration.AddSetting(parameter.Name.Replace($"{rootPath}/", string.Empty), parameter.Value);
             }
         }
-        catch { /* ignore - may not have SSM access in dev */ }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Unable to load the authentication configuration from SSM Parameter Store path {0}{1}.", rootPath, authenticationPath);
+            throw;
+        }
     }
 
     if (BookstoreConfiguration.GetSetting("Services/FileService") == "aws")
@@ -285,6 +359,10 @@ static void LoadAwsConfiguration()
                 BookstoreConfiguration.AddSetting(parameter.Name.Replace($"{rootPath}/", string.Empty), parameter.Value);
             }
         }
-        catch { /* ignore - may not have SSM access in dev */ }
+        catch (Exception ex)
+        {
+            logger.Error(ex, "Unable to load the file service configuration from SSM Parameter Store path {0}{1}.", rootPath, fileServicePath);
+            throw;
+        }
     }
 }
