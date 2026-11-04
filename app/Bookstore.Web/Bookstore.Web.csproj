@@ -3,10 +3,17 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>disable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <Platforms>AnyCPU</Platforms>
     <RootNamespace>Bookstore.Web</RootNamespace>
     <AssemblyName>Bookstore.Web</AssemblyName>
+    <!-- Assembly metadata carried over from the deleted Properties/AssemblyInfo.cs -->
+    <AssemblyTitle>Bookstore.Web</AssemblyTitle>
+    <Company>Organization</Company>
+    <Product>Bookstore.Web</Product>
+    <Copyright>Copyright © Organization 2023</Copyright>
+    <Version>1.0.0.0</Version>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
   </PropertyGroup>
 
   <ItemGroup>
@@ -28,12 +35,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.0" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.0" />
 
-    <!-- Configuration -->
-    <PackageReference Include="System.Configuration.ConfigurationManager" Version="10.0.0" />
-
     <!-- Tag Helpers / Razor -->
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.0" />
-    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.0" />
+    <PackageReference Include="System.Security.Cryptography.Pkcs" Version="10.0.14" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,20 +46,10 @@
     <ProjectReference Include="..\Bookstore.Domain\Bookstore.Domain.csproj" />
   </ItemGroup>
 
-  <!-- Exclude legacy files that have been replaced -->
+  <!-- Trimming descriptor: preserves MetricsEventSource.GetInstance, which is only
+       reached via reflection. Honoured when the app is published trimmed. -->
   <ItemGroup>
-    <Compile Remove="App_Start\BundleConfig.cs" />
-    <Compile Remove="App_Start\RouteConfig.cs" />
-    <Compile Remove="App_Start\FilterConfig.cs" />
-    <Compile Remove="App_Start\AuthenticationSetup.cs" />
-    <Compile Remove="App_Start\DependencyInjectionSetup.cs" />
-    <Compile Remove="App_Start\LoggingSetup.cs" />
-    <Compile Remove="App_Start\ConfigurationSetup.cs" />
-    <Compile Remove="Global.asax.cs" />
-    <Compile Remove="Startup.cs" />
-    <Compile Remove="Properties\AssemblyInfo.cs" />
-    <Compile Remove="Areas\Admin\AdminAreaRegistration.cs" />
-    <Compile Remove="Helpers\IOwinRequestExtensions.cs" />
+    <TrimmerRootDescriptor Include="ILLink/ILLink.Descriptors.LibraryBuild.xml" />
   </ItemGroup>
 
   <!-- Static file content is included automatically by the SDK Web glob -->

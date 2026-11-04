@@ -2,17 +2,15 @@
 
 ## Result
 
-All 5 projects build with **zero compilation errors** targeting `net10.0`.
+All 5 projects build with **zero compilation errors and zero warnings** targeting `net10.0`.
 
 | Project | Target | Result | Warnings |
 |---------|--------|--------|----------|
 | Bookstore.Common | net10.0;netstandard2.0 | ✅ Build succeeded | 0 |
 | Bookstore.Domain | net10.0;netstandard2.0 | ✅ Build succeeded | 0 |
-| Bookstore.Data | net10.0 | ✅ Build succeeded | 4 (NU only) |
-| Bookstore.Cdk | net10.0 | ✅ Build succeeded | 5 (NU only) |
-| Bookstore.Web | net10.0 | ✅ Build succeeded | 6 (NU only) |
-
-All remaining warnings are NU1902/NU1903 package vulnerability advisories — there are no C# compiler (CS) warnings in any project.
+| Bookstore.Data | net10.0 | ✅ Build succeeded | 0 |
+| Bookstore.Cdk | net10.0 | ✅ Build succeeded | 0 |
+| Bookstore.Web | net10.0 | ✅ Build succeeded | 0 |
 
 ---
 
@@ -34,7 +32,7 @@ All remaining warnings are NU1902/NU1903 package vulnerability advisories — th
 - Collapsed to single `net10.0` target (netstandard2.0 dropped — EF Core 10 requires net8.0+, and no EF6 version supports netstandard2.0; this is the KB-defined NU1201 escape hatch for fundamentally incompatible package graphs)
 - Replaced EF6 (`EntityFramework 6.5.1`) with EF Core 10 (`Microsoft.EntityFrameworkCore.SqlServer 10.0.0`)
 - Upgraded `Magick.NET-Q8-AnyCPU` from 14.6.0 → 15.0.0 to clear high/moderate security vulnerabilities
-- Pinned `System.Security.Cryptography.Pkcs` to 10.0.0 (still tracked in CVE — see Next Steps)
+- Upgraded `System.Security.Cryptography.Pkcs` from 10.0.0 → 10.0.14 (fixes GHSA-2fmv-rv2c-59x7 moderate and GHSA-846f-f764-76mx high severity CVEs)
 
 **Bookstore.Web.csproj**
 - Full conversion from legacy ToolsVersion/MSBuild XML to `Microsoft.NET.Sdk.Web` SDK-style
@@ -148,28 +146,39 @@ All views using `@Html.Partial(...)` and `@{Html.RenderPartial(...);}` replaced 
 - `IFileService.SaveAsync` → accepts and returns nullable stream/string
 - `IImageValidationService.IsSafeAsync` → accepts nullable stream
 
+### Additional Fixes (Iteration 3)
+
+**Bookstore.Cdk/CoreStack.cs**
+- Migrated `CloudFrontWebDistribution` (deprecated) → modern `Distribution` + `S3BucketOrigin.WithOriginAccessControl()` (OAC)
+- Removed legacy OAI (`OriginAccessIdentity`) and manual bucket policy statement — OAC manages the policy automatically
+- Added `using Amazon.CDK.AWS.CloudFront.Origins` import
+
+**Bookstore.Web/Program.cs**
+- Replaced obsolete `ForwardedHeadersOptions.KnownNetworks` → `KnownIPNetworks` (ASPDEPR005)
+
+**Package upgrades (security)**
+- `System.Security.Cryptography.Pkcs` 10.0.0 → 10.0.14 (Bookstore.Web, Bookstore.Data): fixes GHSA-2fmv-rv2c-59x7 (moderate) and GHSA-846f-f764-76mx (high)
+- `Amazon.CDK.Lib` 2.188.0 → 2.275.0 (Bookstore.Cdk): fixes GHSA-464c-974j-9xm6 (low)
+- `Cdklabs.CdkNag` 2.35.66 → 2.38.2, `Constructs` 10.4.2 → 10.8.1 (aligned with CDK 2.275.0)
+
 ---
 
-## Remaining Warnings (All NU — Not Resolvable by Version Bump)
+## Remaining Warnings
 
-| Package | Version | Advisory | Severity | Notes |
-|---------|---------|----------|----------|-------|
-| `System.Security.Cryptography.Pkcs` | 10.0.0 | GHSA-2fmv-rv2c-59b7 (mod), GHSA-846f-f764-76mx (high) | High | .NET 10 platform package; same CVEs tracked in all available .NET 10 versions; no non-vulnerable version available. |
+None. The solution builds with **0 warnings and 0 errors**.
 
 ---
 
 ## Next Steps
 
-1. **System.Security.Cryptography.Pkcs CVE**: Monitor Microsoft security bulletins (https://github.com/advisories/GHSA-846f-f764-76mx) for a patched .NET 10 release. Apply when available.
+1. **Bookstore.Data netstandard2.0 compatibility**: Bookstore.Data was collapsed from multi-target (`net10.0;netstandard2.0`) to single `net10.0` because EF Core 10 and EF6 both lack support for netstandard2.0. Any callers that haven't yet upgraded from .NET Framework will need to use the pre-migration library version or be upgraded themselves.
 
-2. **Bookstore.Data netstandard2.0 compatibility**: Bookstore.Data was collapsed from multi-target (`net10.0;netstandard2.0`) to single `net10.0` because EF Core 10 and EF6 both lack support for netstandard2.0. Any callers that haven't yet upgraded from .NET Framework will need to use the pre-migration library version or be upgraded themselves.
+2. **Nullable Reference Types in Bookstore.Web**: The Web project has `<Nullable>disable</Nullable>` to avoid flooding the build with CS8618/CS8604 warnings on ~20 ViewModel files migrated from a non-nullable .NET Framework codebase. Enabling nullable in the Web project incrementally (per-file with `#nullable enable`) is recommended as a follow-up.
 
-3. **Nullable Reference Types in Bookstore.Web**: The Web project has `<Nullable>disable</Nullable>` to avoid flooding the build with CS8618/CS8604 warnings on ~20 ViewModel files migrated from a non-nullable .NET Framework codebase. Enabling nullable in the Web project incrementally (per-file with `#nullable enable`) is recommended as a follow-up.
+3. **EF Core Migrations**: The migration uses `EnsureCreated()` (via `BookstoreDbSeeder`). For production, replace with `dotnet ef migrations add InitialCreate` + `dotnet ef database update` to manage schema changes incrementally.
 
-4. **CloudFrontWebDistribution deprecation in Bookstore.Cdk**: `CloudFrontWebDistribution` is marked obsolete (CS0618). Consider migrating to the `Distribution` API when updating the CDK stack.
+4. **HTTPS for Cognito**: The README notes that Amazon Cognito Hosted UI requires HTTPS for redirect URIs (except localhost). When deploying to ECS on Fargate, configure HTTPS termination (ALB + ACM certificate) before enabling Cognito authentication.
 
-5. **EF Core Migrations**: The migration uses `EnsureCreated()` (via `BookstoreDbSeeder`). For production, replace with `dotnet ef migrations add InitialCreate` + `dotnet ef database update` to manage schema changes incrementally.
+5. **Static file serving**: The legacy `Content/` and `Scripts/` directories are served via additional `UseStaticFiles` middleware entries. Consider migrating to `wwwroot/` as part of a clean-up pass.
 
-6. **HTTPS for Cognito**: The README notes that Amazon Cognito Hosted UI requires HTTPS for redirect URIs (except localhost). When deploying to ECS on Fargate, configure HTTPS termination (ALB + ACM certificate) before enabling Cognito authentication.
-
-7. **Static file serving**: The legacy `Content/` and `Scripts/` directories are served via additional `UseStaticFiles` middleware entries. Consider migrating to `wwwroot/` as part of a clean-up pass.
+6. **CloudFront OAC migration note**: The CDK stack now uses OAC instead of OAI. If redeploying an existing stack that previously used OAI, follow the two-step migration guide in the CDK docs to avoid downtime (grant OAC access first, then remove OAI in a subsequent deploy).

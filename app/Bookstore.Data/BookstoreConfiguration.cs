@@ -1,9 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Configuration;
 
 namespace BobsBookstoreClassic.Data
 {
+    /// <summary>
+    /// Static accessor for application settings and connection strings.
+    /// Values are populated at startup from <c>IConfiguration</c> by the web host
+    /// (see Bookstore.Web/Program.cs) via <see cref="AddSetting"/> and
+    /// <see cref="AddConnectionString"/>. Environment variables take precedence on read,
+    /// preserving the override behavior the legacy ConfigurationManager loader provided.
+    /// </summary>
     public sealed class BookstoreConfiguration
     {
         private static readonly Lazy<BookstoreConfiguration> Lazy = new Lazy<BookstoreConfiguration>(() => new BookstoreConfiguration());
@@ -15,22 +21,6 @@ namespace BobsBookstoreClassic.Data
 
         private BookstoreConfiguration()
         {
-            foreach (string key in ConfigurationManager.AppSettings)
-            {
-                _appSettings[key] = ConfigurationManager.AppSettings[key] ?? string.Empty;
-
-                var envVar = Environment.GetEnvironmentVariable(key);
-                if (envVar != null)
-                {
-                    _appSettings[key] = envVar;
-                }
-            }
-
-            foreach (ConnectionStringSettings connectionStringSettings in ConfigurationManager.ConnectionStrings)
-            {
-                _connectionStrings[connectionStringSettings.Name] = connectionStringSettings.ConnectionString ?? string.Empty;
-
-            }
         }
 
         public static void AddSetting(string key, string value)
@@ -40,12 +30,24 @@ namespace BobsBookstoreClassic.Data
 
         public static string GetSetting(string key)
         {
-            return Instance._appSettings[key];
+            // Environment variables override configured settings (legacy behavior).
+            var envVar = Environment.GetEnvironmentVariable(key);
+            if (envVar != null)
+            {
+                return envVar;
+            }
+
+            return Instance._appSettings.TryGetValue(key, out var value) ? value : string.Empty;
         }
 
         public static T GetSetting<T>(string key)
         {
-            var value = Instance._appSettings[key];
+            var value = GetSetting(key);
+
+            if (string.IsNullOrEmpty(value))
+            {
+                return default!;
+            }
 
             return (T)Convert.ChangeType(value, typeof(T));
         }
@@ -57,8 +59,13 @@ namespace BobsBookstoreClassic.Data
 
         public static string GetConnectionString(string key)
         {
-            return Instance._connectionStrings[key];
-        }
+            var envVar = Environment.GetEnvironmentVariable(key);
+            if (envVar != null)
+            {
+                return envVar;
+            }
 
+            return Instance._connectionStrings.TryGetValue(key, out var value) ? value : string.Empty;
+        }
     }
 }
